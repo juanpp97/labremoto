@@ -1,0 +1,13 @@
+imageio-ffmpeg
+pillow
+Flask
+Flask-Cors
+Flask-SQLAlchemy
+Flask-JWT-Extended
+scipy
+matplotlib
+parse
+numpy
+imageio
+python-decouple
+paho
