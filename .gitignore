@@ -132,7 +132,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+Client/
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -172,3 +172,4 @@ app_local.py
 
 .xlsx
 
+    

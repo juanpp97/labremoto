@@ -1,6 +1,6 @@
 let lastCanvas;
 const baseURL = 'https://labremotos.fica.unsl.edu.ar/raspi'
-// const baseURL = 'http://127.0.0.1:5000/'
+//const baseURL = 'http://127.0.0.1:5000/'
 const container = document.querySelector('main.content')
 const contentComponent = `
 <section class="prediction">
@@ -41,7 +41,7 @@ class PredictionCanvas {
         this.color = color;
         this.magnitude = magnitude;
         this.points = points;
-        this.gridWidth = this.element.width / 6;
+        this.gridWidth = (this.element.width - this.marginWidth) / 6;
         this.gridHeight = this.element.height / 7;
         this.element.addEventListener("click", (event) => this.getCoordinates(event));
         this.drawAxis();
@@ -83,7 +83,6 @@ class PredictionCanvas {
         this.ctx.clearRect(0, 0, this.element.width, this.element.height);
         this.ctx.fillStyle = "#fff";
         this.ctx.fillRect(0, 0, this.element.width, this.element.height);
-        this.gridWidth = (this.element.width - this.marginWidth) / 6;
         this.ctx.strokeStyle = '#eee';
         this.ctx.lineWidth = 1.5;
         this.ctx.beginPath();

@@ -2,6 +2,6 @@ En JS usar un flag isPending para evitar dos peticiones seguidas a la url
 En la ruta de la camara colocar una uuid que se envie en el momento de inicio y expire despues del tiempo dado. 
 Que nadie pueda ver la camara sin autorización previa (sin conocer esa uuid)
 Agregar contador del tiempo restante
-v1.1 -- ¿Como autenticar que el usuario que está haciendo la petición es quien dice ser?
+v1.1 -- ¿Como autenticar que el usuario que está haciendo la petición es quien dice ser? -> crear script php para verificar sesion y obtener el usuario
 
 

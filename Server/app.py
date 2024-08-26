@@ -6,21 +6,20 @@ import io
 from flask_cors import CORS
 from PIL import Image
 from flask_sqlalchemy import SQLAlchemy 
-from flask_jwt_extended import create_access_token, JWTManager, jwt_required, create_refresh_token, get_jwt_identity, get_jwt, verify_jwt_in_request
+from flask_jwt_extended import create_access_token, JWTManager, jwt_required, create_refresh_token, get_jwt_identity, get_jwt, verify_jwt_in_request, get_jti
 from datetime import timedelta, datetime
 import LabRem as LR
 import threading
-from decouple import config
 
 ###################### Configuracion ######################
 app = Flask(__name__)
 CORS(app)
-app.config["JWT_SECRET_KEY"] = config('JWT_KEY')
+app.config["JWT_SECRET_KEY"] = 'hd-hd89756-3!45&fsd+g646%/1'
 jwt = JWTManager(app)
 expiration_minutes = 10
 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes)
-app.config['SQLALCHEMY_DATABASE_URI'] = config('DATABASE_URI')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.150.0.101:3306/LRFICA'
 
 ###################### Modelos ######################
 db = SQLAlchemy(app)
@@ -111,7 +110,7 @@ def index():
         timer_thread = threading.Thread(target=reset_flag)
         timer_thread.start()
         # return jsonify(token=access_token, distancia = LR.distancia)
-        last_token = access_token
+        last_token = get_jti(access_token)
         return jsonify(token=access_token)
     return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
 
@@ -196,7 +195,6 @@ def datosRecibidos_esp():
     token = get_jwt()
     if not verificar_token(token): return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
     output=LR.GraficarDatos_esp()
-    busy = False
     return Response(output, mimetype='image/png')
 
 # Camara

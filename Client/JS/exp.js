@@ -22,8 +22,8 @@ class GraphError extends Error {
     }
 }
 const baseURL = 'https://labremotos.fica.unsl.edu.ar/raspi'
-// const baseURL = 'http://127.0.0.1:5000/'
-
+//const baseURL = 'http://127.0.0.1:5000/'
+let interval;
 const container = document.querySelector('main.content')
 const errorMessage = document.getElementById('error-msg')
 const alertDiv = document.querySelector('.alert')
@@ -181,7 +181,6 @@ async function startExp(event){
     }
     let acGraph, velGraph, posGraph;
     try{
-
         acGraph = await getGraph('/resultados/grafica-aceleracion');
         velGraph = await getGraph('/resultados/grafica-velocidad');
         posGraph = await getGraph('/resultados/grafica-espacio');
@@ -196,6 +195,14 @@ async function startExp(event){
         velocidad: velGraph,
         posicion: posGraph
     }))
+    const sensors = document.getElementById('sensores')
+    try{
+        const res = await getGraph('/grafica-sensores')
+        sensors.src = res
+    }catch(error){
+        sensors.hidden = true;
+        console.log(error.message)
+    }
     const result = `
     <section id="results">
     <h2> Resultados del experimento </h2>
@@ -299,14 +306,7 @@ async function initComponent(){
     inclinar = document.getElementById('inclinar')
 
     document.getElementById('frame').src = baseURL + '/camera'
-    const sensors = document.getElementById('sensores')
-    try{
-        const res = await getGraph('/grafica-sensores')
-        sensors.src = res
-    }catch(error){
-        sensors.hidden = true;
-        console.log(error.message)
-    }
+
     inclinar.addEventListener('click', sendAngle)
     iniciar.addEventListener('click', startExp)
     reiniciar.addEventListener('click', restartExp)
