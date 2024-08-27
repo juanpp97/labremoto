@@ -2,13 +2,12 @@
 include('conexion.php'); // Incluye el archivo de conexión
 session_start(); // Inicia la sesión
 
-
 if($_SERVER["REQUEST_METHOD"] == "POST"){
     if(isset($_SESSION["usuario_id"])){
         $usuario_id = $conexion->real_escape_string($_SESSION['usuario_id']);
 
         // Obtener información del usuario de la base de datos
-        $sql = "SELECT clase FROM usuarios WHERE id = '$usuario_id'";
+        $sql = "SELECT dni FROM usuarios WHERE id = '$usuario_id'";
         $result = $conexion->query($sql);
 
 
@@ -20,6 +19,10 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         http_response_code(200); 
         header('Content-type: application/json');
         echo json_encode( $username );
+        exit();
+    }else{
+        header('Access-Control-Allow-Origin: *');
+        http_response_code(400);
         exit();
     }
 }

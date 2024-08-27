@@ -40,6 +40,10 @@ export default function Index() {
         setPage('prediction');
     }
 
+
+    const finishPredictionHandler = () => {
+        setPage('afterPrediction');
+    }
     const startExperimentHandler = () => {
         // Hacer petición para obtener JWT o si ya lo tiene y es válido dejar acceder a experimento
         
@@ -55,6 +59,7 @@ export default function Index() {
         });
 
         const savedPredictions = getFromLocalStorage("lastPred");
+        
         // En caso de que no haya predicciones guardadas
         if (!savedPredictions) {
             setPage('prediction');
@@ -69,7 +74,7 @@ export default function Index() {
     if (!username) return <Spinner />
 
     if (page === 'prediction') {
-        return <Prediction editPredictions={editPredictions} handleExperiment={startExperimentHandler} />;
+        return <Prediction editPredictions={editPredictions} handleExperiment={startExperimentHandler} finishPredictionHandler={finishPredictionHandler} />;
     }
 
     if (page === 'lastPrediction') {
