@@ -95,7 +95,14 @@ button {
     flex-direction: row;
     gap: 1rem;
     width: 100%;
+    margin-top: 30px;
+    & button{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
 
+    }
 }
 
 .prediction__canvas {
@@ -135,4 +142,18 @@ button {
         cursor: crosshair;
     }
 }
-
+.images_container{
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin: 0 auto;
+}
+.images{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+}
+.images img{
+    max-width: 300px;
+}
