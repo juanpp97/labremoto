@@ -10,6 +10,6 @@ export const LAST_EXPERIMENT = 'lastExperiment';
 //export const NO_SESSION_REDIRECT = ''
 
 /* Development */
-export const SESSION_CHECK_URL = 'http://localhost:8000/session.php'
+export const SESSION_CHECK_URL = 'http://localhost:8000/session_local.php'
 export const EXPERIMENT_BASE_URL = 'http://localhost:5000/'
 export const NO_SESSION_REDIRECT = '/#/experimento'
