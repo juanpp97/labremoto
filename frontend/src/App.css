@@ -123,6 +123,19 @@ button {
     animation: maxHeightAnimation 1s ease forwards;
 }
 
+.animationOpacityIn{
+    opacity: 0;
+    animation: opacityAnimationIn 300ms ease forwards;
+}
+@keyframes opacityAnimationIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
 @keyframes maxHeightAnimation {
     0% {
         max-height: 0;

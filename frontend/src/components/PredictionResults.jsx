@@ -2,7 +2,7 @@ import DownloadbleImage from "@/components/DownloadbleImage";
 
 export default function PredictionResults({predictionEntries, children}){
     return (
-        <div className="images_container">
+        <div className="images_container animationOpacityIn">
 
             <h2>Tus ultimas predicciones</h2>
             <div className="images">
