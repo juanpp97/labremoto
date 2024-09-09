@@ -10,4 +10,4 @@ parse
 numpy
 imageio
 python-decouple
-paho
+paho-mqtt

@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import Button from "@/components/Button";
 import PredictionCanvas from "@/components/PredictionCanvas";
+import SaveIcon from "@/components/SaveIcon";
 import Videos from "@/components/Videos";
 import { getFromLocalStorage } from "@@/functions.js";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +10,9 @@ export default function Prediction({ editPredictions, finishPredictionHandler })
     const [showCanvas, setShowCanvas] = useState(false);
     const [points, setPoints] = useState({ posicion: [], velocidad: [], aceleracion: [] });
     const lastCanvas = useRef(null);
-    // Verificar de usar refs individuales para evitar querySelectorAll
+    const posCanvasRef = useRef(null);
+    const velCanvasRef = useRef(null);
+    const accCanvasRef = useRef(null);
 
     const addNewPoint = (point, type) => {
         const newPoints = { ...points };
@@ -48,13 +51,29 @@ export default function Prediction({ editPredictions, finishPredictionHandler })
     const handleSave = () => {
         localStorage.setItem('points', JSON.stringify(points));
         // Obtener la codificación base64 de cada canvas
-        const canvasList = document.querySelectorAll('#prediction_canvas canvas');
+        const canvasList = [posCanvasRef.current, velCanvasRef.current, accCanvasRef.current];
         const lastPred = {posicion: "", velocidad: "", aceleracion: ""};
-        for(const canvas of canvasList){
+        canvasList.forEach(canvas => {
             lastPred[canvas.dataset["magnitude"]] = canvas.toDataURL();
-        }
+        });
         localStorage.setItem('lastPredictions', JSON.stringify(lastPred));
         finishPredictionHandler(lastPred);
+    }
+
+    const getCanvasReference = (ref, type) => {
+        switch(type){
+            case "posicion":
+                posCanvasRef.current = ref;
+                break;
+            case "velocidad":
+                velCanvasRef.current = ref;
+                break;
+            case "aceleracion":
+                accCanvasRef.current = ref;
+                break;
+            
+        }
+
     }
 
     // Effect a ejecutar al montar el componente
@@ -99,16 +118,16 @@ export default function Prediction({ editPredictions, finishPredictionHandler })
                         <p><strong>Atajos del teclado: </strong> Presiona <code>B</code> para borrar en la última gráfica utilizada o <code>Ctrl + Z</code> para deshacer el último trazo</p>
 
                         <div className="canvas" id="prediction_canvas">
-                            <PredictionCanvas points={points.posicion} addPoint={addNewPoint} color="red" magnitude="posicion" updateLastCanvas={updateLastCanvas} />
+                            <PredictionCanvas points={points.posicion} addPoint={addNewPoint} color="red" magnitude="posicion" updateLastCanvas={updateLastCanvas} getRef={getCanvasReference}/>
 
-                            <PredictionCanvas points={points.velocidad} addPoint={addNewPoint} color="green" magnitude="velocidad" updateLastCanvas={updateLastCanvas} />
+                            <PredictionCanvas points={points.velocidad} addPoint={addNewPoint} color="green" magnitude="velocidad" updateLastCanvas={updateLastCanvas} getRef={getCanvasReference}/>
 
-                            <PredictionCanvas points={points.aceleracion} addPoint={addNewPoint} color="blue" magnitude="aceleracion" updateLastCanvas={updateLastCanvas} />
+                            <PredictionCanvas points={points.aceleracion} addPoint={addNewPoint} color="blue" magnitude="aceleracion" updateLastCanvas={updateLastCanvas} getRef={getCanvasReference}/>
                         </div>
 
                     </article>
                     <div className="buttons">
-                    <button onClick={handleSave}>Guardar Predicciones</button>
+                    <button onClick={handleSave}> <SaveIcon width={24} height={24}/> Guardar Predicciones</button>
                     </div>
                     </>
                 )

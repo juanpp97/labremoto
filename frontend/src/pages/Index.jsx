@@ -37,18 +37,20 @@ export default function Index() {
         setPage('prediction');
     }
 
+    // Función para predecir los resultados o repetir predicciones
     const startPredictionHandler = () => {
-        setEditPredictions(true);
+        setEditPredictions(false);
         setPage('prediction');
     }
-
+    // Cuando el usuario terminó las predicciones
     const finishPredictionHandler = (lastPredictions) => {
         setLastPred(lastPredictions);
         setPage('afterPrediction');
     }
-
+    // Para iniciar el experimento
     const startExperimentHandler = () => {
-        // Hacer petición para obtener JWT o si ya lo tiene y es válido dejar acceder a experimento
+        // TODO: Hacer petición para obtener JWT o si ya lo tiene y es válido dejar acceder a experimento
+        
         navigate('/experimento')
     }
 
@@ -82,6 +84,7 @@ export default function Index() {
         });
 
         const savedPredictions = getFromLocalStorage("lastPredictions");
+        
         // En caso de que no haya predicciones guardadas
         if (!savedPredictions) {
             setPage('prediction');
@@ -96,7 +99,7 @@ export default function Index() {
     if (!username) return <Spinner />
 
     if (page === 'prediction') {
-        return <Prediction editPredictions={true} finishPredictionHandler={finishPredictionHandler} />;
+        return <Prediction editPredictions={editPredictions} finishPredictionHandler={finishPredictionHandler} />;
     }
 
     if (page === 'lastPrediction') {
