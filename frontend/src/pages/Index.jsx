@@ -12,6 +12,7 @@ import AfterPrediction from "@/pages/AfterPrediction.jsx";
 import Spinner from "@/components/Spinner";
 import { SESSION_CHECK_URL, NO_SESSION_REDIRECT } from "@@/constants";
 import { getFromLocalStorage } from "@@/functions";
+import { useNavigate } from "react-router-dom";
 
 export default function Index() {
     const [page, setPage] = useState('prediction');
@@ -21,6 +22,7 @@ export default function Index() {
     const [lastPred, setLastPred] = useState({ posicion: null, velocidad: null, aceleracion: null });
     //Estado para saber si muestro los videos o no en Prediction.jsx
     const [editPredictions, setEditPredictions] = useState(false);
+    const navigate = useNavigate();
 
     // Funcion para verificar si el usuario esta logueado
     const verify_session = async () => {
@@ -42,20 +44,49 @@ export default function Index() {
         setPage('prediction');
     }
 
+    // Función para predecir los resultados o repetir predicciones
     const startPredictionHandler = () => {
         setEditPredictions(false);
         setPage('prediction');
     }
+<<<<<<< HEAD
 
 
     const finishPredictionHandler = () => {
         setEditPredictions(false);
+=======
+    // Cuando el usuario terminó las predicciones
+    const finishPredictionHandler = (lastPredictions) => {
+        setLastPred(lastPredictions);
+>>>>>>> 2dd1da805a9204f424208f0ed562f1778645f052
         setPage('afterPrediction');
     }
+    // Para iniciar el experimento
     const startExperimentHandler = () => {
-        // Hacer petición para obtener JWT o si ya lo tiene y es válido dejar acceder a experimento
+        // TODO: Hacer petición para obtener JWT o si ya lo tiene y es válido dejar acceder a experimento
         
+        navigate('/experimento')
     }
+
+    const downloadImages = (imagesArray, type) => {
+        if(!imagesArray) return;
+        imagesArray.forEach(([magn, img]) => {
+            const link = document.createElement('a');
+            link.href = img;
+            link.download = type + "_" + magn + ".png";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+    const handleDownload = ([predictions, experimentals]) => {
+        if(!predictions && !experimentals) return;
+        
+        downloadImages(predictions, "Prediccion");
+        downloadImages(experimentals, "Experimental");
+
+    }
+
 
     // Efecto a ejecutar cuando se renderiza el componente
     useEffect(() => {
@@ -66,8 +97,13 @@ export default function Index() {
             setUsername(data);
         });
 
+<<<<<<< HEAD
         const savedPredictions = getFromLocalStorage("lastPred");
 
+=======
+        const savedPredictions = getFromLocalStorage("lastPredictions");
+        
+>>>>>>> 2dd1da805a9204f424208f0ed562f1778645f052
         // En caso de que no haya predicciones guardadas
         if (!savedPredictions) {
             setPage('prediction');
@@ -82,15 +118,15 @@ export default function Index() {
     if (!username) return <Spinner />
 
     if (page === 'prediction') {
-        return <Prediction editPredictions={editPredictions} handleExperiment={startExperimentHandler} finishPredictionHandler={finishPredictionHandler} />;
+        return <Prediction editPredictions={editPredictions} finishPredictionHandler={finishPredictionHandler} />;
     }
 
     if (page === 'lastPrediction') {
-        return <LastPredictions lastPred={lastPred} handlePredict={startPredictionHandler} />;
+        return <LastPredictions lastPred={Object.entries(lastPred)} handlePredict={startPredictionHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload}/>;
     }
 
     if (page === 'afterPrediction') {
-        return <AfterPrediction handleEdit={editPredictionsHandler} handleExperiment={startExperimentHandler}/>;
+        return <AfterPrediction handleEdit={editPredictionsHandler} handleExperiment={startExperimentHandler}handleDownload={handleDownload} lastPredictions={Object.entries(lastPred)} />;
     }
 
 }

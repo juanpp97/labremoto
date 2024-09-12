@@ -1,21 +1,34 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from "react"
+<<<<<<< HEAD
 export default function PredictionCanvas({points, addPoint, color, magnitude, updateLastCanvas}) {
+=======
+
+export default function PredictionCanvas({points, addPoint, color, magnitude, updateLastCanvas, getRef}) {
+>>>>>>> 2dd1da805a9204f424208f0ed562f1778645f052
     const ref = useRef(null);
     const [ctx, setCtx] = useState(null);
 
     const marginWidth = 20;
     let name = "";
-    if(magnitude === "posicion"){
-        name = "Posición";
-    } else if(magnitude === "velocidad"){
-        name = "Velocidad";
-    } else if(magnitude === "aceleracion"){
-        name = "Aceleración";
+    switch(magnitude){
+        case "posicion":
+            name = "Posición";
+            break;
+        case "velocidad":
+            name = "Velocidad";
+            break;
+        case "aceleracion":
+            name = "Aceleración";
+            break;
+        default:
+            break;
     }
+
     
     useEffect(() => {
         const canvas = ref.current;
+        getRef(ref.current, magnitude)
         const ctx = canvas.getContext("2d");
         setCtx(ctx);
     }, [])

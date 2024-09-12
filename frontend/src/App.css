@@ -95,7 +95,14 @@ button {
     flex-direction: row;
     gap: 1rem;
     width: 100%;
+    margin-top: 30px;
+    & button{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
 
+    }
 }
 
 .prediction__canvas {
@@ -116,8 +123,22 @@ button {
     animation: maxHeightAnimation 1s ease forwards;
 }
 
+<<<<<<< HEAD
 .animationEdit{
     animation: opacityAnimation 300ms ease forwards;
+=======
+.animationOpacityIn{
+    opacity: 0;
+    animation: opacityAnimationIn 300ms ease forwards;
+}
+@keyframes opacityAnimationIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+>>>>>>> 2dd1da805a9204f424208f0ed562f1778645f052
 }
 
 @keyframes maxHeightAnimation {
@@ -148,4 +169,18 @@ button {
         cursor: crosshair;
     }
 }
-
+.images_container{
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin: 0 auto;
+}
+.images{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+}
+.images img{
+    max-width: 300px;
+}

@@ -96,11 +96,11 @@ def index():
     global busy, last_token
     if busy: return (jsonify(msg = "Laboratorio ocupado"), 400)
     username = request.json.get("username")
-    user = User.query.filter_by(username=username).first()
+    # user = User.query.filter_by(username=username).first()
 
     access_token = None
-    if user:
-        access_token = create_access_token(identity=username)
+    if username:
+        access_token = create_access_token(identity="40722571")
         busy = True
         timer_thread = threading.Thread(target=reset_flag)
         timer_thread.start()

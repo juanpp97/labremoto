@@ -10,7 +10,7 @@ export default defineConfig({
       "@@": path.resolve(''),
     },
   },
-  // base: '/LR-fisica/', 
+  // base: '/LR-fisica/prueba', 
   base: './',
   plugins: [react()],
 

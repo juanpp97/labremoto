@@ -4,3 +4,4 @@ Client/
 .env
 *.xlsx
 *.pdf
+session_local.php
