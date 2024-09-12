@@ -49,16 +49,9 @@ export default function Index() {
         setEditPredictions(false);
         setPage('prediction');
     }
-<<<<<<< HEAD
-
-
-    const finishPredictionHandler = () => {
-        setEditPredictions(false);
-=======
     // Cuando el usuario terminó las predicciones
     const finishPredictionHandler = (lastPredictions) => {
         setLastPred(lastPredictions);
->>>>>>> 2dd1da805a9204f424208f0ed562f1778645f052
         setPage('afterPrediction');
     }
     // Para iniciar el experimento
@@ -97,13 +90,8 @@ export default function Index() {
             setUsername(data);
         });
 
-<<<<<<< HEAD
-        const savedPredictions = getFromLocalStorage("lastPred");
-
-=======
         const savedPredictions = getFromLocalStorage("lastPredictions");
         
->>>>>>> 2dd1da805a9204f424208f0ed562f1778645f052
         // En caso de que no haya predicciones guardadas
         if (!savedPredictions) {
             setPage('prediction');

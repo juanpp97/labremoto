@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { NavLink } from "react-router-dom"
 
 
-export default function Experiment({}){
+export default function Experiment(){
     const [isLoading, setIsLoading] = useState(true);
     const [isRequestPending, setIsRequestPending] = useState(false)
     //TO DO: useEffect que verifique que efectivamente el usuario pueda estar aca (token en localStorage y válido)
