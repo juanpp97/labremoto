@@ -1,6 +1,15 @@
 import Spinner from "@/components/Spinner";
 import { useEffect, useState } from "react"
 import { NavLink } from "react-router-dom"
+
+/*
+import React from 'react';
+
+// Memoized Image Component
+const MemoizedImage = React.memo(({ src }) => {
+  return <img src={src} alt="Camera Feed" />;
+});
+*/
 export default function Experiment(){
     const [isLoading, setIsLoading] = useState(true);
     //TO DO: useEffect que verifique que efectivamente el usuario pueda estar aca

@@ -116,12 +116,25 @@ button {
     animation: maxHeightAnimation 1s ease forwards;
 }
 
+.animationEdit{
+    animation: opacityAnimation 300ms ease forwards;
+}
+
 @keyframes maxHeightAnimation {
     0% {
         max-height: 0;
     }
     100% {
         max-height: 500rem; 
+    }
+}
+
+@keyframes opacityAnimation {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1; 
     }
 }
 .canvas {

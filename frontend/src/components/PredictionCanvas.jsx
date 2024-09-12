@@ -1,6 +1,5 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from "react"
-
 export default function PredictionCanvas({points, addPoint, color, magnitude, updateLastCanvas}) {
     const ref = useRef(null);
     const [ctx, setCtx] = useState(null);

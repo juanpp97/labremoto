@@ -1,3 +1,5 @@
+//TODO: Obtener la codificación base64 de cada canvas de predicción y guardar en localStorage
+
 /* eslint-disable react/prop-types */
 import PredictionCanvas from "@/components/PredictionCanvas";
 import Videos from "@/components/Videos";
@@ -49,6 +51,7 @@ export default function Prediction({ editPredictions, finishPredictionHandler })
 
     useEffect(() => {
         document.addEventListener('keydown', handlePointDeletion);
+        if(editPredictions) setShowCanvas(true);
         return () => document.removeEventListener('keydown', handlePointDeletion);
     }, [])
 
@@ -81,7 +84,7 @@ export default function Prediction({ editPredictions, finishPredictionHandler })
             {
                 showCanvas && (
                     <>
-                    <article className={`prediction__canvas ${showCanvas && "animationIn"}`} >
+                    <article className={`prediction__canvas ${showCanvas ? "animationIn" : null}`} >
 
                         <p><strong>Atajos del teclado: </strong> Presiona <code>B</code> para borrar en la última gráfica utilizada o <code>Ctrl + Z</code> para deshacer el último trazo</p>
 

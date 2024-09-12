@@ -1,3 +1,10 @@
+/* TODO: 
+- Armar pagina con las ultimas predicciones
+- Armar pagina con las ultimas graficas
+- Funcion HandleExperiment - Solicitar JWT y verificar
+- Temporizador de expiracion de token
+
+*/
 import { useEffect, useState } from "react";
 import LastPredictions from "@/pages/LastPredictions.jsx";
 import Prediction from "@/pages/Prediction.jsx";
@@ -42,6 +49,7 @@ export default function Index() {
 
 
     const finishPredictionHandler = () => {
+        setEditPredictions(false);
         setPage('afterPrediction');
     }
     const startExperimentHandler = () => {
@@ -59,7 +67,7 @@ export default function Index() {
         });
 
         const savedPredictions = getFromLocalStorage("lastPred");
-        
+
         // En caso de que no haya predicciones guardadas
         if (!savedPredictions) {
             setPage('prediction');
