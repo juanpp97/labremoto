@@ -86,7 +86,7 @@ export default function Prediction({ editPredictions, finishPredictionHandler })
     // Effect para el caso de editar predicciones
     useEffect(() => {
         if (!editPredictions) return;
-        const points = getFromLocalStorage("points")
+        const points = getFromLocalStorage("points");
         if (!points) return;
         setPoints(points);
         setShowCanvas(true);
