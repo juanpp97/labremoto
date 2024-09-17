@@ -3,7 +3,7 @@ import LastPredictions from "@/pages/LastPredictions.jsx";
 import Prediction from "@/pages/Prediction.jsx";
 import AfterPrediction from "@/pages/AfterPrediction.jsx";
 import Spinner from "@/components/Spinner";
-import { SESSION_CHECK_URL, NO_SESSION_REDIRECT } from "@@/constants";
+import { SESSION_CHECK_URL, NO_SESSION_REDIRECT, ACCESS_TOKEN, REFRESH_TOKEN } from "@@/constants";
 import { getFromLocalStorage } from "@@/functions";
 import { useNavigate } from "react-router-dom";
 
@@ -50,7 +50,7 @@ export default function Index() {
     // Para iniciar el experimento
     const startExperimentHandler = () => {
         // TODO: Hacer petición para obtener JWT o si ya lo tiene y es válido dejar acceder a experimento
-        
+        localStorage.setItem(ACCESS_TOKEN, JSON.stringify('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcyNjYwMDE0NCwianRpIjoiNWU3M2RjZDUtZjJlZS00MjhmLWI0YmUtZjU1MzM0ZTZmYjM1IiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjQwNzIyNTcxIiwibmJmIjoxNzI2NjAwMTQ0LCJjc3JmIjoiZGI5ZDQ0MTUtN2M4Zi00M2E4LTg2OTYtNjg2N2E5YTNmNjA3IiwiZXhwIjoxNzI2NjAwMjY0fQ.eIAIKi-d87MX36DA-WTjVKUCYzXslnghdCsDETOApAU'))
         navigate('/experimento')
     }
 

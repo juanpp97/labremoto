@@ -22,11 +22,11 @@ app = Flask(__name__)
 CORS(app)
 app.config["JWT_SECRET_KEY"] = "hd-hd89756-3!45&fsd+g646%/1"
 jwt = JWTManager(app)
-expiration_minutes = 20
+expiration_minutes = 2
 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.101.10.177:3306/LRFICA'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:juanp1997@localhost/proyecto'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:juanp1997@localhost:3306/proyecto'
 
 ###################### Modelos ######################
 db = SQLAlchemy(app)
@@ -39,8 +39,9 @@ class TokenBlocklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(36), nullable=False, index=True)
     date_created = db.Column(db.DateTime, nullable=False)
-    
 
+with app.app_context():
+    db.create_all()
 # LR.conectar()
 
 ###################### Variables Globales ######################
