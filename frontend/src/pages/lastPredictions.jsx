@@ -4,10 +4,13 @@ import DownloadbleImage from "@/components/DownloadbleImage";
 import LoginIcon from "@/components/LoginIcon";
 import PredictionResults from "@/components/PredictionResults";
 import RepeatIcon from "@/components/RepeatIcon";
+import Error from "@/components/Error";
+
 import { useEffect, useState } from "react";
 
 export default function lastPredictions({ lastPred, lastExp, handlePredict, handleExperiment, handleDownload }) {
     const [entries, setEntries] = useState([]);
+    
 
     useEffect(() => {
         setEntries([lastPred, lastExp]);

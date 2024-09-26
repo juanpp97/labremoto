@@ -22,27 +22,39 @@ app = Flask(__name__)
 CORS(app)
 app.config["JWT_SECRET_KEY"] = "hd-hd89756-3!45&fsd+g646%/1"
 jwt = JWTManager(app)
-expiration_minutes = 2
+expiration_minutes = 20
 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes + 10)
+
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.101.10.177:3306/LRFICA'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:juanp1997@localhost:3306/proyecto'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.150.0.101:3306/gestionUsuarios'
 
 ###################### Modelos ######################
 db = SQLAlchemy(app)
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(80), nullable=False)
+class Users(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre = db.Column(db.String(40), nullable=False)
+    password = db.Column(db.String(50), nullable=False)
+    recovery_token = db.Column(db.String(255), nullable=True)
+    token_expires = db.Column(db.DateTime, nullable=True)
+    clase = db.Column(db.String(80), nullable=False, default="Usuario Estandar")
+    email = db.Column(db.String(30), nullable=False, index=True)
+    apellido = db.Column(db.String(25), nullable=False)
+    verificado = db.Column(db.Boolean, nullable=False, default=False)
+    id_sesion = db.Column(db.String(255), nullable=True)
+    dni = db.Column(db.String(10), nullable=True)
+    timestamp = db.Column(db.TIMESTAMP, nullable=False, server_default='CURRENT_TIMESTAMP')
+    clave_aleatoria = db.Column(db.String(10), nullable=True)
+
     
 class TokenBlocklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(36), nullable=False, index=True)
     date_created = db.Column(db.DateTime, nullable=False)
 
-with app.app_context():
-    db.create_all()
-# LR.conectar()
+# # LR.conectar()
 
 ###################### Variables Globales ######################
 busy = False
@@ -97,18 +109,26 @@ def index():
     global busy, last_token
     if busy: return (jsonify(msg = "Laboratorio ocupado"), 400)
     username = request.json.get("username")
-    # user = User.query.filter_by(username=username).first()
-
+    user = Users.query.filter_by(dni=username).first()
+    if(not user): return jsonify(msg = "Credenciales Incorrectas"), 401
     access_token = None
     if username:
         access_token = create_access_token(identity="40722571")
+        refresh_token = create_refresh_token(identity="40722571")
         busy = True
         timer_thread = threading.Thread(target=reset_flag)
         timer_thread.start()
         # return jsonify(token=access_token, distancia = LR.distancia)
         last_token = get_jti(access_token)
-        return jsonify(token=access_token)
+        return jsonify(access= access_token, refresh = refresh_token)
     return jsonify(msg = "Credenciales Incorrectas"), 401
+
+@app.route("/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh():
+    identity = get_jwt_identity()
+    access_token = create_access_token(identity=identity)
+    return jsonify(access= access_token)
 
 
 @app.route("/inclinar", methods = ["POST"])
@@ -236,19 +256,23 @@ def datosRecibidos_esp():
 # Camara
 def generate():
     global camera
-    for frame in iio.get_reader("<video0>"):
-        if not busy:
-            return
-        resized_frame = Image.fromarray(frame).resize((400, 350))
-        output = io.BytesIO()
-        resized_frame.save(output, format='WEBP')
-        frame_bytes = output.getvalue()
-        yield (b'--frame\r\nContent-Type: image/webp\r\n\r\n' + frame_bytes + b'\r\n')
-        sleep(1/frame_rate) 
+    while busy:
+        for frame in iio.get_reader("<video0>"):
+            resized_frame = Image.fromarray(frame).resize((400, 350))
+            output = io.BytesIO()
+            resized_frame.save(output, format='WEBP')
+            frame_bytes = output.getvalue()
+            yield (b'--frame\r\nContent-Type: image/webp\r\n\r\n' + frame_bytes + b'\r\n')
+            sleep(1 / frame_rate)
+
 
 @app.route('/camera')
 def video():
-    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame') if busy else jsonify(msg = 'Acceso denegado')
+    if busy:
+        response = Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+    return jsonify(msg='Acceso denegado')
 
 ###################### Vistas Admin ######################
 

@@ -19,14 +19,28 @@ jwt = JWTManager(app)
 expiration_minutes = 10
 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.150.0.101:3306/LRFICA'
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes + 10)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.150.0.101:3306/gestionUsuarios'
 
 ###################### Modelos ######################
 db = SQLAlchemy(app)
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(80), nullable=False)
+class Usuarios(db.Model):
+    __tablename__ = 'usuarios'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre = db.Column(db.String(40), nullable=False)
+    password = db.Column(db.String(50), nullable=False)
+    recovery_token = db.Column(db.String(255), nullable=True)
+    token_expires = db.Column(db.DateTime, nullable=True)
+    clase = db.Column(db.String(80), nullable=False, default="Usuario Estandar")
+    email = db.Column(db.String(30), nullable=False, index=True)
+    apellido = db.Column(db.String(25), nullable=False)
+    verificado = db.Column(db.Boolean, nullable=False, default=False)
+    id_sesion = db.Column(db.String(255), nullable=True)
+    dni = db.Column(db.String(10), nullable=True)
+    timestamp = db.Column(db.TIMESTAMP, nullable=False)
+    clave_aleatoria = db.Column(db.String(10), nullable=True)
+
     
 class TokenBlocklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -72,26 +86,6 @@ def verificar():
     token = get_jwt()
     return jsonify(msg="Token válido") if verificar_token(token) else (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
 
-
-@app.route('/verificar_estado', methods = ['GET'])
-@jwt_required()
-def estado():
-    token = get_jwt()
-    if not verificar_token(token): return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
-    return jsonify(msg=busy)
-# @app.route("/", methods = ["POST"])
-# def index():
-#     global busy
-#     # if busy: return (jsonify(msg = "Laboratorio ocupado"), 400)
-#     username = request.json.get("username")
-#     user = User.query.filter_by(username=username).first()
-
-#     access_token = None
-#     if user:
-#         access_token = create_access_token(identity=username)
-#         busy = True
-#         return jsonify(token=access_token, distancia = LR.distancia)
-#     return jsonify(msg = "Credenciales Incorrectas"), 401
 @app.route("/", methods = ["POST"])
 def index():
     global busy, last_token, time_stamp
@@ -100,18 +94,18 @@ def index():
         seconds_remaining = expiration_minutes*60 - (datetime.now() - time_stamp).total_seconds()
         return (jsonify(msg = f"Laboratorio ocupado. Tiempo restante {int(seconds_remaining/60)} minutos y {int(seconds_remaining % 60)} segundos"), 400)
     username = request.json.get("username")
-    user = User.query.filter_by(username=username).first()
-
+    user = Usuarios.query.filter_by(username=username).first()
     access_token = None
     if user:
         access_token = create_access_token(identity=username)
+        refresh_token = create_refresh_token(identity=username)
         busy = True
         time_stamp = datetime.now()
         timer_thread = threading.Thread(target=reset_flag)
         timer_thread.start()
         # return jsonify(token=access_token, distancia = LR.distancia)
         last_token = get_jti(access_token)
-        return jsonify(token=access_token)
+        return jsonify(token={"access": access_token, "refresh": refresh_token})
     return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
 
 def reset_flag():
@@ -200,20 +194,23 @@ def datosRecibidos_esp():
 # Camara
 def generate():
     global camera
-    for frame in iio.get_reader("<video0>"):
-        if not busy:
-            return
-        resized_frame = Image.fromarray(frame).resize((400, 350))
-        output = io.BytesIO()
-        resized_frame.save(output, format='WEBP')
-        frame_bytes = output.getvalue()
-        yield (b'--frame\r\nContent-Type: image/webp\r\n\r\n' + frame_bytes + b'\r\n')
-        sleep(1/frame_rate) 
+    while busy:
+        for frame in iio.get_reader("<video0>"):
+            resized_frame = Image.fromarray(frame).resize((400, 350))
+            output = io.BytesIO()
+            resized_frame.save(output, format='WEBP')
+            frame_bytes = output.getvalue()
+            yield (b'--frame\r\nContent-Type: image/webp\r\n\r\n' + frame_bytes + b'\r\n')
+            sleep(1 / frame_rate)
+
 
 @app.route('/camera')
 def video():
-    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame') if busy else jsonify(msg = 'Acceso denegado')
-
+    if busy:
+        response = Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+    return jsonify(msg='Acceso denegado')
 ###################### Vistas Admin ######################
 
 @app.route("/hard-reset", methods = ["GET"])
@@ -223,11 +220,22 @@ def hard_reset():
     
     if not busy: return {}
     identity = get_jwt_identity()
-    user = User.query.filter_by(username=identity).first()
-    if user and user == "admin":
+    user = Usuarios.query.filter_by(username=identity).first()
+    if user and user.clase == "Administrador":
         LR.hardReset()
-        pass
     return {}
+
+@app.route('/verificar_estado', methods = ['GET'])
+@jwt_required()
+def estado():
+    token = get_jwt()
+    if not verificar_token(token): return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
+    identity = get_jwt_identity()
+    user = Usuarios.query.filter_by(username=identity).first()
+    if user and user.clase == "Administrador":
+        return jsonify(msg=busy)
+    return jsonify(msg = "Credenciales Incorrectas", code="E00"), 401
+
 
 @app.route("/change-state", methods = ["GET"])
 @jwt_required()
@@ -236,8 +244,8 @@ def change_state():
     
     if not busy: return {}
     identity = get_jwt_identity()
-    user = User.query.filter_by(username=identity).first()
-    if user and user == "admin":
+    user = Usuarios.query.filter_by(username=identity).first()
+    if user and user.clase == "Administrador":
         busy = False
         return jsonify(msg="Cambiado correctamente")
     return {}
