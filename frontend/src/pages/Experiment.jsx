@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { verifyExpired, verifyTokenValidity } from "@@/functions";
 
-export default function Experiment({}) {
+export default function Experiment({ }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isRequestPending, setIsRequestPending] = useState(false);
     const [secondsRemaining, setSecondsRemaining] = useState(0);
@@ -20,30 +20,30 @@ export default function Experiment({}) {
 
     useEffect(() => {
         console.log('re-rendered');
-        
+
     })
 
     useEffect(() => {
         const auth_verify = async () => {
             console.log("token");
             const token = getFromLocalStorage(ACCESS_TOKEN);
-            
+
             if (!token) {
                 navigate('/');
             }
 
             try {
-                
+
                 if (verifyExpired(token) || !await verifyTokenValidity(token)) {
                     localStorage.removeItem(ACCESS_TOKEN);
                     localStorage.removeItem(REFRESH_TOKEN);
                     navigate('/');
                 }
                 const decoded = jwtDecode(token);
-                
+
                 const timeRemaining = Math.trunc((decoded.exp * 1000 - Date.now()) * 0.001);
                 setSecondsRemaining(timeRemaining);
-                            
+
             } catch (error) {
                 navigate('/');
             } finally {
@@ -53,32 +53,49 @@ export default function Experiment({}) {
         };
 
         auth_verify();
-        
+
     }, []);
 
     const handleAngleChange = (event) => {
         setPitchAngle(event.target.value)
     }
-
+    const increasePitch = () => {
+        if(pitchAngle >= 15) return;
+        setPitchAngle((prev) => prev + 1)
+    }
+    const decreasePitch = () => {
+        if(pitchAngle <= 0) return;
+        setPitchAngle((prev) => prev - 1)
+    }
+    const validAngle = pitchAngle >= 0 && pitchAngle <= 15; 
     return (
         <>
             {
                 isLoading ? <Spinner /> :
                     <>
-                     <Timer numSeconds = {secondsRemaining}/>
+                        <Timer numSeconds={secondsRemaining} />
 
                         <section className="experiment">
                             <div className="experiment__feed">
                                 <h2 className="feed__heading">Vista en vivo</h2>
                                 <p class="pitch"><strong> Angulo de inclinación actual: </strong> {lastPitchAngle}°  </p>
-                                { showCamera &&  <CameraFeed src={CAMERA_URL} />}
+                                {showCamera && <CameraFeed src={CAMERA_URL} />}
                             </div>
 
                             <div class="experiment_controls">
                                 <h2 className="feed__heading">Controles del experimento</h2>
-                                <label htmlFor="pitch">Angulo de inclinación</label>
-                                <input type="number" name="pitch" id="pitch" className="pitch_input" onChange={handleAngleChange}/>
-                                <p>{pitchAngle}</p>
+                                <div className="form-group">
+
+                                    <label htmlFor="pitch">Angulo de inclinación</label>
+                                    <div className="input-group">
+                                        <button type="button" className="icon-button" onClick={decreasePitch}>−</button>
+                                        <input type="number" name="pitch" id={`pitch`} className={`pitch_input ${validAngle ? "" : "error-input"}`} onChange={handleAngleChange} min={0} max={15} value={pitchAngle}/>
+                                        <button type="button" className="icon-button" onClick={increasePitch}>+</button>
+                                    </div>
+                                    {!validAngle ?
+                                    <p className="error_message"> El angulo debe estar comprendido entre 0° y 15°</p>
+                                    : null}
+                                </div>
                             </div>
                         </section>
                     </>
