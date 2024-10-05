@@ -22,7 +22,7 @@ app = Flask(__name__)
 CORS(app)
 app.config["JWT_SECRET_KEY"] = "hd-hd89756-3!45&fsd+g646%/1"
 jwt = JWTManager(app)
-expiration_minutes = 20
+expiration_minutes = 1
 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes + 10)
