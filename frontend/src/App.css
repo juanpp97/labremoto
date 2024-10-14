@@ -321,3 +321,7 @@ button {
     color: #9c1414;
     margin-top: 0;
 }
+
+.error-input{
+    border-color: #9c1414 !important;
+}

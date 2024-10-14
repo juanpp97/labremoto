@@ -8,6 +8,7 @@ from PIL import Image
 from flask_sqlalchemy import SQLAlchemy 
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, create_refresh_token, get_jwt_identity, get_jwt, verify_jwt_in_request, get_jti
 from datetime import timedelta
+from decouple import config
 # import LabRem as LR
 
 import numpy as np
@@ -20,16 +21,14 @@ import threading
 ###################### Configuracion ######################
 app = Flask(__name__)
 CORS(app)
-app.config["JWT_SECRET_KEY"] = "hd-hd89756-3!45&fsd+g646%/1"
+app.config["JWT_SECRET_KEY"] = config('JWT')
 jwt = JWTManager(app)
 expiration_minutes = 1
 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes + 10)
 
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.101.10.177:3306/LRFICA'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:juanp1997@localhost:3306/proyecto'
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.150.0.101:3306/gestionUsuarios'
+app.config['SQLALCHEMY_DATABASE_URI'] = config('DB_URI')
 
 ###################### Modelos ######################
 db = SQLAlchemy(app)
@@ -255,15 +254,16 @@ def datosRecibidos_esp():
 
 # Camara
 def generate():
-    global camera
-    while busy:
-        for frame in iio.get_reader("<video0>"):
-            resized_frame = Image.fromarray(frame).resize((400, 350))
-            output = io.BytesIO()
-            resized_frame.save(output, format='WEBP')
-            frame_bytes = output.getvalue()
-            yield (b'--frame\r\nContent-Type: image/webp\r\n\r\n' + frame_bytes + b'\r\n')
-            sleep(1 / frame_rate)
+    while busy: 
+        with iio.get_reader("<video0>") as reader:
+            for frame in reader:
+                resized_frame = Image.fromarray(frame).resize((400, 350))
+                output = io.BytesIO()
+                resized_frame.save(output, format='WEBP')
+                frame_bytes = output.getvalue()
+                yield (b'--frame\r\nContent-Type: image/webp\r\n\r\n' + frame_bytes + b'\r\n')
+                sleep(1 / frame_rate)
+            return
 
 
 @app.route('/camera')

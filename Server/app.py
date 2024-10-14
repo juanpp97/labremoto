@@ -10,17 +10,18 @@ from flask_jwt_extended import create_access_token, JWTManager, jwt_required, cr
 from datetime import timedelta, datetime
 import LabRem as LR
 import threading
+from decouple import config
 
 ###################### Configuracion ######################
 app = Flask(__name__)
 CORS(app)
-app.config["JWT_SECRET_KEY"] = 'hd-hd89756-3!45&fsd+g646%/1'
+app.config["JWT_SECRET_KEY"] = config('JWT')
 jwt = JWTManager(app)
 expiration_minutes = 10
 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes + 10)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://lrfica:Gestion+-lrFICA!@10.150.0.101:3306/gestionUsuarios'
+app.config['SQLALCHEMY_DATABASE_URI'] = config('DB_URI')
 
 ###################### Modelos ######################
 db = SQLAlchemy(app)

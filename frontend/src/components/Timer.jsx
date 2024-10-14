@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '@@/constants';
 
 
-export default function Timer({numSeconds}){
+export default function Timer({numSeconds, closeCamera}){
     const [secondsRemaining, setSecondsRemaining] = useState(numSeconds)
     const navigate = useNavigate();
     const minutes = Math.trunc(secondsRemaining / 60);;
@@ -12,8 +13,13 @@ export default function Timer({numSeconds}){
         const timer = setInterval(() => {
             setSecondsRemaining(prev => {
                 if (prev <= 1) {
-                    navigate("/");
-                    clearInterval(timer);
+                    closeCamera();
+                    setTimeout(() => {
+                        clearInterval(timer);
+                        localStorage.removeItem(ACCESS_TOKEN);
+                        localStorage.removeItem(REFRESH_TOKEN);
+                        navigate("/");
+                    }, 100)
                 }
                 return prev - 1;
             });

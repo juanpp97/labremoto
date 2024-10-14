@@ -1,5 +1,4 @@
 import Spinner from "@/components/Spinner";
-import { Suspense } from "react";
 import Timer from "@/components/Timer";
 import CameraFeed from "@/components/CameraFeed";
 import { useEffect, useState } from "react";
@@ -9,13 +8,14 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { verifyExpired, verifyTokenValidity } from "@@/functions";
 
-export default function Experiment({ }) {
+export default function Experiment({}) {
     const [isLoading, setIsLoading] = useState(true);
     const [isRequestPending, setIsRequestPending] = useState(false);
     const [secondsRemaining, setSecondsRemaining] = useState(0);
     const [pitchAngle, setPitchAngle] = useState(0);
     const [lastPitchAngle, setLastPitchAngle] = useState(0);
     const [showCamera, setShowCamera] = useState(false);
+    const [cameraSrc, setCameraSrc] = useState(CAMERA_URL)
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -67,19 +67,22 @@ export default function Experiment({ }) {
         if(pitchAngle <= 0) return;
         setPitchAngle((prev) => prev - 1)
     }
+    const closeCamera = () => {
+        setCameraSrc('')
+    }
     const validAngle = pitchAngle >= 0 && pitchAngle <= 15; 
     return (
         <>
             {
                 isLoading ? <Spinner /> :
                     <>
-                        <Timer numSeconds={secondsRemaining} />
+                        <Timer numSeconds={secondsRemaining} closeCamera={closeCamera} />
 
                         <section className="experiment">
                             <div className="experiment__feed">
                                 <h2 className="feed__heading">Vista en vivo</h2>
                                 <p class="pitch"><strong> Angulo de inclinación actual: </strong> {lastPitchAngle}°  </p>
-                                {showCamera && <CameraFeed src={CAMERA_URL} />}
+                                {showCamera && <CameraFeed src={cameraSrc} />}
                             </div>
 
                             <div class="experiment_controls">
@@ -88,8 +91,11 @@ export default function Experiment({ }) {
 
                                     <label htmlFor="pitch">Angulo de inclinación</label>
                                     <div className="input-group">
+
                                         <button type="button" className="icon-button" onClick={decreasePitch}>−</button>
+
                                         <input type="number" name="pitch" id={`pitch`} className={`pitch_input ${validAngle ? "" : "error-input"}`} onChange={handleAngleChange} min={0} max={15} value={pitchAngle}/>
+
                                         <button type="button" className="icon-button" onClick={increasePitch}>+</button>
                                     </div>
                                     {!validAngle ?

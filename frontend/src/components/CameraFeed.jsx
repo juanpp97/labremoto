@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
 const CameraFeed = React.memo(({ src }) => {
     return <img src={src} alt="Vista en vivo" className="feed__camera"/>;
