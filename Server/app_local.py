@@ -7,7 +7,7 @@ from flask_cors import CORS
 from PIL import Image
 from flask_sqlalchemy import SQLAlchemy 
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, create_refresh_token, get_jwt_identity, get_jwt, verify_jwt_in_request, get_jti
-from datetime import timedelta
+from datetime import timedelta, datetime
 from decouple import config
 # import LabRem as LR
 
@@ -23,7 +23,7 @@ app = Flask(__name__)
 CORS(app)
 app.config["JWT_SECRET_KEY"] = config('JWT')
 jwt = JWTManager(app)
-expiration_minutes = 1
+expiration_minutes = 20
 
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(minutes=expiration_minutes + 10)
@@ -59,6 +59,7 @@ class TokenBlocklist(db.Model):
 busy = False
 frame_rate = 30
 last_token = None
+streaming = True
 ###################### Callbacks ######################
 @jwt.unauthorized_loader
 def callback(str):
@@ -129,10 +130,22 @@ def refresh():
     access_token = create_access_token(identity=identity)
     return jsonify(access= access_token)
 
+@app.route("/logout", methods=["DELETE"])
+@jwt_required()
+def revoke_token():
+    global busy
+    busy = False
+    jti = get_jwt()["jti"]
+    now = datetime.now()
+    db.session.add(TokenBlocklist(jti=jti, date_created=now))
+    db.session.commit()
+    return jsonify(msg="Experimento finalizado")
 
-@app.route("/inclinar", methods = ["POST"])
+
+@app.route("/inclinar", methods = ["POST"]) 
 @jwt_required()
 def inclinar():
+    
     # if not LR.consultarEstado(): return (jsonify(msg =  "Error al enviar comando"), 400)
     
     # angulo = request.form.get("angulo", 0)
@@ -148,7 +161,8 @@ def inclinar():
     ##########################################################
     token = get_jwt()
     if not verificar_token(token): return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
-
+    angulo = request.form.get("angulo", 0)
+    print(angulo)
     success = True
     print("Inclinando la rampa")
     
@@ -249,11 +263,11 @@ def datosRecibidos_esp():
     if not verificar_token(token): return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
     # output=LR.GraficarDatos_esp()
     output = graficar()
-    busy = False
     return Response(output, mimetype='image/png')
 
 # Camara
 def generate():
+    global streaming
     while busy: 
         with iio.get_reader("<video0>") as reader:
             for frame in reader:
@@ -268,11 +282,14 @@ def generate():
 
 @app.route('/camera')
 def video():
-    if busy:
+    global streaming
+    streaming = True
+    if busy and streaming:
         response = Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response
     return jsonify(msg='Acceso denegado')
+
 
 ###################### Vistas Admin ######################
 

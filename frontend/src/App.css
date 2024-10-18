@@ -205,7 +205,6 @@ button {
 .alert {
     position: relative;
     margin: 10px auto;
-    padding: 10px;
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
@@ -223,7 +222,13 @@ button {
         cursor: pointer;
     }
 }
-
+.error{
+    background-color: rgb(156, 20, 20,0.3);
+}
+.success{
+    color: #00360e;
+    background-color: rgb(0,255,0,.3);
+}
 .text {
     text-align: center;
     width: 80%;
@@ -274,7 +279,7 @@ button {
 }
 
 .form-group label {
-    font-size: 1rem;
+    font-size: 1.1rem;
     color: #333;
     text-align: center;
 }
@@ -324,4 +329,45 @@ button {
 
 .error-input{
     border-color: #9c1414 !important;
+}
+.control__buttons{
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    width: 100%;
+    margin: 0 auto;    
+    & button{
+        width: 80%;
+    }
+
+}
+
+.control__buttons>button:hover{
+    background: #56646d;
+}
+.control__buttons>button:last-child{
+    background: rgb(255, 0, 25,.8);
+}
+.results{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    & h2{
+        font-size: 1.7rem;
+    }
+}
+.experiment__heading{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+.experiment__heading>button{
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-shadow: 1.5px 3px 5px #555;
+
 }

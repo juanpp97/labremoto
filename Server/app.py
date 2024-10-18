@@ -106,7 +106,7 @@ def index():
         timer_thread.start()
         # return jsonify(token=access_token, distancia = LR.distancia)
         last_token = get_jti(access_token)
-        return jsonify(token={"access": access_token, "refresh": refresh_token})
+        return jsonify(access= access_token, refresh = refresh_token)
     return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
 
 def reset_flag():

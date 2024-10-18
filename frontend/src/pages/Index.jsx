@@ -15,6 +15,7 @@ export default function Index() {
     const [username, setUsername] = useState(null);
     //Ultimas predicciones (las saco de localStorage)
     const [lastPred, setLastPred] = useState({ posicion: null, velocidad: null, aceleracion: null });
+    const [lastExp, setlastExp] = useState({ posicion: null, velocidad: null, aceleracion: null });
     //Estado para saber si muestro los videos o no en Prediction.jsx
     const [editPredictions, setEditPredictions] = useState(false);
     const [isError, setIsError] = useState(false)
@@ -117,6 +118,7 @@ export default function Index() {
         });
 
         const savedPredictions = getFromLocalStorage("lastPredictions");
+        const savedExperimental = getFromLocalStorage("lastExperimentals");
         
         // En caso de que no haya predicciones guardadas
         if (!savedPredictions) {
@@ -125,6 +127,7 @@ export default function Index() {
         }
 
         setLastPred(savedPredictions);
+        setlastExp(savedExperimental);
         setPage('lastPrediction');
         
     }, []);
@@ -137,15 +140,15 @@ export default function Index() {
     if (page === 'lastPrediction') {
         return (
         <>
-        {isErrorVisible && <Error message={errorMessage} onClick = {() => setIsErrorVisible(false)}/>}
-        <LastPredictions lastPred={Object.entries(lastPred)} handlePredict={startPredictionHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload}/>
+        {isErrorVisible && <Error isError={true} message={errorMessage} onClick = {() => setIsErrorVisible(false)}/>}
+        <LastPredictions lastPred={Object.entries(lastPred)} lastExp={lastExp ? Object.entries(lastExp) : null} handlePredict={startPredictionHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload} />
         
         </>
         )
     }
 
     if (page === 'afterPrediction') {
-        return <AfterPrediction handleEdit={editPredictionsHandler} handleExperiment={startExperimentHandler}handleDownload={handleDownload} lastPredictions={Object.entries(lastPred)} />;
+        return <AfterPrediction handleEdit={editPredictionsHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload} lastPredictions={Object.entries(lastPred)} />;
     }
 
 }

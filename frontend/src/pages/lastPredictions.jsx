@@ -7,6 +7,7 @@ import RepeatIcon from "@/components/RepeatIcon";
 import Error from "@/components/Error";
 
 import { useEffect, useState } from "react";
+import ExperimentalResults from "@/components/ExperimentalResults";
 
 export default function lastPredictions({ lastPred, lastExp, handlePredict, handleExperiment, handleDownload }) {
     const [entries, setEntries] = useState([]);
@@ -19,22 +20,13 @@ export default function lastPredictions({ lastPred, lastExp, handlePredict, hand
 
     return (
         <>
-            <PredictionResults predictionEntries={lastPred}>
+            <PredictionResults predictionEntries={lastPred} text="Tus ultimas predicciones">
 
                 {
                     lastExp
                         ? (
-                            <>
-                                <h2>Tus ultimas gráficas experimentales</h2>
-                                <div className="images">
-                                    {lastExp
-                                        ? lastExp.map(([type, img], index) =>
-                                            <DownloadbleImage key={index} url={img} name={type} downloadName={"Prediccion_" + type + ".png"} />
-                                        )
-                                        : null
-                                    }
-                                </div>
-                            </>
+                            <ExperimentalResults text="Tus ultimas gráficas experimentales" lastExp={lastExp}/>
+                           
                         )
                         : null
                 }

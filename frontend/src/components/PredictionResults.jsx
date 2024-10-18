@@ -1,10 +1,10 @@
 import DownloadbleImage from "@/components/DownloadbleImage";
 
-export default function PredictionResults({predictionEntries, children}){
+export default function PredictionResults({predictionEntries, text, children}){
     return (
         <div className="images_container animationOpacityIn">
 
-            <h2>Tus ultimas predicciones</h2>
+            <h2>{text}</h2>
             <div className="images">
             {predictionEntries
                 ? predictionEntries.map(([type, img], index) =>
