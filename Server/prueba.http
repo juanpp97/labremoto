@@ -7,7 +7,7 @@ POST http://localhost:5000/ HTTP/1.1
 Content-Type: application/json
 
 {
-    "username": "40722571"
+    "username": "12345678"
 }
 
 ### Para verificar validez de un token

@@ -3,9 +3,11 @@ import LastPredictions from "@/pages/LastPredictions.jsx";
 import Prediction from "@/pages/Prediction.jsx";
 import AfterPrediction from "@/pages/AfterPrediction.jsx";
 import Spinner from "@/components/Spinner";
+import Error from "@/components/Error";
 import { SESSION_CHECK_URL, NO_SESSION_REDIRECT, ACCESS_TOKEN, REFRESH_TOKEN } from "@@/constants";
-import { getFromLocalStorage } from "@@/functions";
+import { getFromLocalStorage, getTokenFromServer } from "@@/functions";
 import { useNavigate } from "react-router-dom";
+import { verifyExpired } from "../../functions";
 
 export default function Index() {
     const [page, setPage] = useState('prediction');
@@ -13,8 +15,15 @@ export default function Index() {
     const [username, setUsername] = useState(null);
     //Ultimas predicciones (las saco de localStorage)
     const [lastPred, setLastPred] = useState({ posicion: null, velocidad: null, aceleracion: null });
+    const [lastExp, setlastExp] = useState({ posicion: null, velocidad: null, aceleracion: null });
     //Estado para saber si muestro los videos o no en Prediction.jsx
     const [editPredictions, setEditPredictions] = useState(false);
+    const [isError, setIsError] = useState(false)
+    const [isErrorVisible, setIsErrorVisible] = useState(false);
+
+    const [errorMessage, setErrorMessage] = useState("")
+    const [isRequestPending, setIsRequestPending] = useState(false);
+
     const navigate = useNavigate();
 
     // Funcion para verificar si el usuario esta logueado
@@ -48,9 +57,34 @@ export default function Index() {
         setPage('afterPrediction');
     }
     // Para iniciar el experimento
-    const startExperimentHandler = () => {
-        // TODO: Hacer petición para obtener JWT o si ya lo tiene y es válido dejar acceder a experimento
-        localStorage.setItem(ACCESS_TOKEN, JSON.stringify('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcyNjYwMDE0NCwianRpIjoiNWU3M2RjZDUtZjJlZS00MjhmLWI0YmUtZjU1MzM0ZTZmYjM1IiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjQwNzIyNTcxIiwibmJmIjoxNzI2NjAwMTQ0LCJjc3JmIjoiZGI5ZDQ0MTUtN2M4Zi00M2E4LTg2OTYtNjg2N2E5YTNmNjA3IiwiZXhwIjoxNzI2NjAwMjY0fQ.eIAIKi-d87MX36DA-WTjVKUCYzXslnghdCsDETOApAU'))
+    const startExperimentHandler = async () => {
+        if(isError || isRequestPending) return;
+        setIsRequestPending(true);
+        const access = getFromLocalStorage(ACCESS_TOKEN);
+                
+        if(access){
+            if(!verifyExpired(access)){
+                navigate("/experimento");
+                return;
+            }
+            localStorage.removeItem(ACCESS_TOKEN);
+            localStorage.removeItem(REFRESH_TOKEN);
+        }
+        const data = await getTokenFromServer(username);
+        
+        if(data.error){
+            setErrorMessage(data.data?.msg ?? "Error");
+            setIsError(true);
+            setIsErrorVisible(true);
+            setIsRequestPending(false);
+            setTimeout(() => {setIsError(false)}, 60000)
+            return;
+        }
+        const token = data.data;
+        localStorage.setItem(ACCESS_TOKEN, JSON.stringify(token?.access))
+        localStorage.setItem(REFRESH_TOKEN, JSON.stringify(token?.refresh ?? ""))
+        setIsRequestPending(false);
+
         navigate('/experimento')
     }
 
@@ -84,6 +118,7 @@ export default function Index() {
         });
 
         const savedPredictions = getFromLocalStorage("lastPredictions");
+        const savedExperimental = getFromLocalStorage("lastExperimentals");
         
         // En caso de que no haya predicciones guardadas
         if (!savedPredictions) {
@@ -92,22 +127,28 @@ export default function Index() {
         }
 
         setLastPred(savedPredictions);
+        setlastExp(savedExperimental);
         setPage('lastPrediction');
         
     }, []);
 
     if (!username) return <Spinner />
-
     if (page === 'prediction') {
         return <Prediction editPredictions={editPredictions} finishPredictionHandler={finishPredictionHandler} />;
     }
 
     if (page === 'lastPrediction') {
-        return <LastPredictions lastPred={Object.entries(lastPred)} handlePredict={startPredictionHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload}/>;
+        return (
+        <>
+        {isErrorVisible && <Error isError={true} message={errorMessage} onClick = {() => setIsErrorVisible(false)}/>}
+        <LastPredictions lastPred={Object.entries(lastPred)} lastExp={lastExp ? Object.entries(lastExp) : null} handlePredict={startPredictionHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload} />
+        
+        </>
+        )
     }
 
     if (page === 'afterPrediction') {
-        return <AfterPrediction handleEdit={editPredictionsHandler} handleExperiment={startExperimentHandler}handleDownload={handleDownload} lastPredictions={Object.entries(lastPred)} />;
+        return <AfterPrediction handleEdit={editPredictionsHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload} lastPredictions={Object.entries(lastPred)} />;
     }
 
 }
