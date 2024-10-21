@@ -6,7 +6,7 @@ import Spinner from "@/components/Spinner";
 import Error from "@/components/Error";
 import { SESSION_CHECK_URL, NO_SESSION_REDIRECT, ACCESS_TOKEN, REFRESH_TOKEN } from "@@/constants";
 import { getFromLocalStorage, getTokenFromServer } from "@@/functions";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { verifyExpired } from "../../functions";
 
 export default function Index() {
@@ -25,7 +25,7 @@ export default function Index() {
     const [isRequestPending, setIsRequestPending] = useState(false);
 
     const navigate = useNavigate();
-
+    const location = useLocation();
     // Funcion para verificar si el usuario esta logueado
     const verify_session = async () => {
         try {
@@ -56,37 +56,51 @@ export default function Index() {
         setLastPred(lastPredictions);
         setPage('afterPrediction');
     }
+
+    const showError = (message) => {
+        setErrorMessage(message);
+        setIsError(true);
+        setIsErrorVisible(true);
+        setTimeout(() => {setIsError(false)}, 60000)
+
+    }
     // Para iniciar el experimento
     const startExperimentHandler = async () => {
-        if(isError || isRequestPending) return;
+        if (isError || isRequestPending) return;
         setIsRequestPending(true);
-        const access = getFromLocalStorage(ACCESS_TOKEN);
-                
-        if(access){
-            if(!verifyExpired(access)){
-                navigate("/experimento");
+        let access;
+        let data;
+        try {
+            access = getFromLocalStorage(ACCESS_TOKEN);
+            if (access) {
+                if (!verifyExpired(access)) {
+                    navigate("/experimento");
+                    return;
+                }
+                localStorage.removeItem(ACCESS_TOKEN);
+                localStorage.removeItem(REFRESH_TOKEN);
+            }
+    
+            data = await getTokenFromServer(username);
+            if (!data || data.error) {
+                showError(data.data?.msg ?? "Error al iniciar el experimento");
+                setIsRequestPending(false);
                 return;
             }
+    
+            const token = data?.data;
+            localStorage.setItem(ACCESS_TOKEN, JSON.stringify(token?.access));
+            localStorage.setItem(REFRESH_TOKEN, JSON.stringify(token?.refresh ?? ""));
+            navigate('/experimento');
+    
+        } catch (error) {
             localStorage.removeItem(ACCESS_TOKEN);
             localStorage.removeItem(REFRESH_TOKEN);
-        }
-        const data = await getTokenFromServer(username);
-        
-        if(data.error){
-            setErrorMessage(data.data?.msg ?? "Error");
-            setIsError(true);
-            setIsErrorVisible(true);
+            showError("Error al iniciar el experimento");
+        } finally {
             setIsRequestPending(false);
-            setTimeout(() => {setIsError(false)}, 60000)
-            return;
         }
-        const token = data.data;
-        localStorage.setItem(ACCESS_TOKEN, JSON.stringify(token?.access))
-        localStorage.setItem(REFRESH_TOKEN, JSON.stringify(token?.refresh ?? ""))
-        setIsRequestPending(false);
-
-        navigate('/experimento')
-    }
+    };
 
     const downloadImages = (imagesArray, type) => {
         if(!imagesArray) return;
@@ -110,7 +124,9 @@ export default function Index() {
 
     // Efecto a ejecutar cuando se renderiza el componente
     useEffect(() => {
-        
+        // if(location.state?.error){
+        //     showError("Error al iniciar el experimento");
+        // }
         verify_session().then(data => {
             
             if (!data) location.href = NO_SESSION_REDIRECT;
@@ -141,7 +157,7 @@ export default function Index() {
         return (
         <>
         {isErrorVisible && <Error isError={true} message={errorMessage} onClick = {() => setIsErrorVisible(false)}/>}
-        <LastPredictions lastPred={Object.entries(lastPred)} lastExp={lastExp ? Object.entries(lastExp) : null} handlePredict={startPredictionHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload} />
+        <LastPredictions lastPred={Object.entries(lastPred)} lastExp={lastExp ? Object.entries(lastExp) : null} handlePredict={startPredictionHandler} handleExperiment={startExperimentHandler} handleDownload={handleDownload} isRequest = {isRequestPending}/>
         
         </>
         )

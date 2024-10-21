@@ -5,19 +5,13 @@ import LoginIcon from "@/components/LoginIcon";
 import PredictionResults from "@/components/PredictionResults";
 import RepeatIcon from "@/components/RepeatIcon";
 import Error from "@/components/Error";
+import Spinner from "@/components/Spinner";
 
 import { useEffect, useState } from "react";
 import ExperimentalResults from "@/components/ExperimentalResults";
 
-export default function lastPredictions({ lastPred, lastExp, handlePredict, handleExperiment, handleDownload }) {
-    const [entries, setEntries] = useState([]);
+export default function lastPredictions({ lastPred, lastExp, handlePredict, handleExperiment, handleDownload, isRequest }) {
     
-
-    useEffect(() => {
-        setEntries([lastPred, lastExp]);
-    }, [lastPred, lastExp]);
-
-
     return (
         <>
             <PredictionResults predictionEntries={lastPred} text="Tus ultimas predicciones">
@@ -43,10 +37,10 @@ export default function lastPredictions({ lastPred, lastExp, handlePredict, hand
                     Descargar gráficos 
                 </Button>
 
-                <Button onClick={handleExperiment}> 
+                {isRequest ? <Spinner/> : <Button onClick={handleExperiment}> 
                     <LoginIcon width={24} height={24}/> 
                     Iniciar Experimento 
-                </Button>
+                </Button>}
             </div>
         </>
     )

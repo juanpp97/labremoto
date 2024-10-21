@@ -36,18 +36,15 @@ export default function Experiment({ }) {
     useEffect(() => {
         let token;
         const authVerify = async () => {
-            token = getFromLocalStorage(ACCESS_TOKEN);
-
-            if (!token) {
-                navigate('/');
-            }
-
             try {
-
+                token = getFromLocalStorage(ACCESS_TOKEN);
+                if (!token) {
+                    navigate('/', {state: {error: true}});
+                }               
                 if (verifyExpired(token) || !await verifyTokenValidity(token)) {
                     localStorage.removeItem(ACCESS_TOKEN);
                     localStorage.removeItem(REFRESH_TOKEN);
-                    navigate('/');
+                    navigate('/', {state: {error: true}});
                 }
                 const decoded = jwtDecode(token);
 
@@ -55,8 +52,10 @@ export default function Experiment({ }) {
                 setSecondsRemaining(timeRemaining);
 
             } catch (error) {
-                navigate('/');
-            } finally {
+                localStorage.removeItem(ACCESS_TOKEN);
+                localStorage.removeItem(REFRESH_TOKEN);
+                navigate('/', {state: {error: true}});
+            }finally {
                 setIsLoading(false);
                 setShowCamera(true)
             }

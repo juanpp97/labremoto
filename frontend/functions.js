@@ -19,7 +19,7 @@ const getTokenFromServer = async (username) => {
             headers: {
                 "Content-Type": "application/json",
               },
-            body: JSON.stringify({ username: "12345678" }),
+            body: JSON.stringify({ username: username }),
         });
         const data = await res.json();
         

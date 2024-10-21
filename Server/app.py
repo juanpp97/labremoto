@@ -27,7 +27,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = config('DB_URI')
 db = SQLAlchemy(app)
 class Usuarios(db.Model):
     __tablename__ = 'usuarios'
-
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombre = db.Column(db.String(40), nullable=False)
     password = db.Column(db.String(50), nullable=False)
@@ -55,6 +54,7 @@ busy = False
 time_stamp = None
 frame_rate = 30
 last_token = None
+
 ###################### Callbacks ######################
 @jwt.unauthorized_loader
 def callback(str):
@@ -74,6 +74,7 @@ def check_if_token_revoked(jwt_header, jwt_payload):
 def callback(str):
     return (jsonify(msg = "Credenciales inválidas", code="F02"), 401)
 
+
 def verificar_token(token):
     if last_token is None: return 0
     jti = token["jti"]
@@ -89,16 +90,17 @@ def verificar():
 
 @app.route("/", methods = ["POST"])
 def index():
-    global busy, last_token, time_stamp
+    global busy, last_token, time_stamp, expiration_minutes
 
     if busy: 
         seconds_remaining = expiration_minutes*60 - (datetime.now() - time_stamp).total_seconds()
         return (jsonify(msg = f"Laboratorio ocupado. Tiempo restante {int(seconds_remaining/60)} minutos y {int(seconds_remaining % 60)} segundos"), 400)
     username = request.json.get("username")
+    expiration_minutes = request.json.get('expiration', expiration_minutes)
     user = Usuarios.query.filter_by(username=username).first()
     access_token = None
     if user:
-        access_token = create_access_token(identity=username)
+        access_token = create_access_token(identity=username, expires_delta=timedelta(minutes=expiration_minutes))
         refresh_token = create_refresh_token(identity=username)
         busy = True
         time_stamp = datetime.now()
@@ -108,6 +110,24 @@ def index():
         last_token = get_jti(access_token)
         return jsonify(access= access_token, refresh = refresh_token)
     return (jsonify(msg = "Credenciales Incorrectas", code="E00"), 401)
+
+@app.route("/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh():
+    identity = get_jwt_identity()
+    access_token = create_access_token(identity=identity, expires_delta=timedelta(minutes=5))
+    return jsonify(access= access_token)
+
+@app.route("/logout", methods=["DELETE"])
+@jwt_required()
+def revoke_token():
+    global busy
+    busy = False
+    jti = get_jwt()["jti"]
+    now = datetime.now()
+    db.session.add(TokenBlocklist(jti=jti, date_created=now))
+    db.session.commit()
+    return jsonify(msg="Experimento finalizado")
 
 def reset_flag():
     global busy
@@ -194,7 +214,6 @@ def datosRecibidos_esp():
 
 # Camara
 def generate():
-    global camera
     while busy:
         for frame in iio.get_reader("<video0>"):
             resized_frame = Image.fromarray(frame).resize((400, 350))
