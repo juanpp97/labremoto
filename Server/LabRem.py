@@ -41,10 +41,10 @@ distancia=[0,0.02,0.30,0.60,0.90]
 comBlock=False
 estado_base=''
 
-class AnguloInvalidoError(BaseException):
+class AnguloInvalidoError(Exception):
     pass
 
-class TimeOutError(BaseException):
+class TimeOutError(Exception):
     pass
 
 # on_connect callback:
@@ -126,7 +126,7 @@ def conectar():
 # Envia el comando en modo bloqueante solo si la base esta lista. Es recomendable usarlo para manejar la base
 # devuelve 1 si el comando se envio y la base esta lista
 # devuelve 0 si el comando no se envio porque la base no esta lista
-# devuelve TimeOutError si se excedio el timeout.
+# lanza TimeOutError si se excedio el timeout.
 def enviarComandoBM(topic,message,timeout,target=0):
     if not consultarEstado():
         return 0
@@ -136,7 +136,7 @@ def enviarComandoBM(topic,message,timeout,target=0):
     while timeout>(t1()-t0):
         if consultarEstado(target):
             return 1
-    return TimeOutError("Tiempo de espera agotado")
+    raise TimeOutError("Tiempo de espera agotado")
 
 # consultarEstado:
 # Esta funcion consulta el estado de la base.
