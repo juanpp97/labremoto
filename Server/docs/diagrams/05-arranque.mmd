@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant G as gunicorn
+    participant A as app.py
+    participant S as setup_resource
+    participant M as LeaseManager
+    participant T as Hilos de fondo
+
+    G->>A: import app
+    Note right of A: logs JSON · configuración · Flask · JWT<br/>modelos · LR.conectar() (loop MQTT)
+    A->>S: setup_resource(app, LabRemDriver(LR), ...)
+    Note right of S: 1. lock de proceso único<br/>(si otro proceso lo tiene: ProcessLockError)<br/>2. crea HardwareController, HistoryRecorder<br/>y LeaseManager · registra endpoints
+    S->>T: inicia lease-history (cierra sesiones huérfanas)
+    S->>M: start(initial_reset=True)
+    Note right of M: estado RESETTING
+    M->>T: inicia lease-startup-reset y lease-watchdog
+    Note right of S: registra apagado ordenado (atexit)
+    A-->>G: aplicación lista
+    T-->>M: safe_state OK → FREE (o FAULT)

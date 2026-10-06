@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant A as Request A (en vuelo)
+    participant B as Request B (tardío)
+    participant C as HardwareController
+    participant M as LeaseManager
+    participant S as Hilo lease-reset
+
+    A->>C: run(época 7, iniciar)
+    Note over C: el request A toma el io_lock y ejecuta
+    Note right of M: el lease termina · tokens revocados
+    M->>S: agenda safe_state
+    S->>C: safe_state()
+    Note over S,C: espera el io_lock
+    B->>C: run(época 7, reiniciar)
+    C->>M: is_current(7)
+    M-->>C: false
+    C-->>B: LeaseRevoked → 401
+    C-->>A: el experimento termina normalmente
+    Note over S,C: el hilo de reset obtiene el io_lock<br/>safe_state: rampa a 0°
+    S->>M: RESETTING → FREE

@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant S as systemd
+    participant G as gunicorn
+    participant W as Worker
+    participant M as LeaseManager
+
+    S->>G: start
+    G->>W: import app
+    W->>M: start (reset inicial en segundo plano)
+    Note over W: atiende requests
+    S->>G: stop (SIGTERM)
+    G->>W: SIGTERM
+    W->>M: atexit · stop()
+    Note over M: con sesión activa: LOCKED → RESETTING (server_shutdown)<br/>safe_state sincrónico
+    Note right of W: atexit · flush final del historial
+    W-->>G: exit
+    Note over S,W: límites: a los 120 s gunicorn mata el worker<br/>y a los 150 s systemd mata el servicio

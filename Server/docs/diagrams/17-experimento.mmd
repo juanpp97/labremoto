@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    participant F as Frontend
+    participant B as Backend
+    participant BA as Micro base
+    participant MO as Micro móvil
+
+    F->>B: POST /inclinar angulo=10
+    B->>BA: com3 ang 10.0
+    BA-->>B: Base lista
+    B-->>F: 200 Base Inclinada
+    F->>B: GET /iniciar
+    B->>BA: com1
+    B->>MO: com1
+    Note right of BA: suelta el móvil
+    MO-->>B: 200 muestras del acelerómetro
+    BA-->>B: 4 tiempos de barrera
+    Note over B: integra aceleración → velocidad → posición<br/>espera 5 s dentro del io_lock
+    B-->>F: 200 Experimento realizado con éxito
+    F->>B: GET /resultados/grafica-aceleracion
+    B-->>F: image/png

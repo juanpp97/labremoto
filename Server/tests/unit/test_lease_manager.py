@@ -8,7 +8,8 @@ from hardware.fake import FakeHardwareController
 from lease.clock import FakeClock
 from lease.errors import LeaseInvalid, ResourceBusy, ResourceFault
 from lease.manager import LeaseManager
-from lease.models import EndReason, LeaseState
+from lease.models import EndReason, EventKind, LeaseState
+from tests.fakes import inline_runner
 
 DURATION = 900
 HB_EVERY = 20
@@ -38,6 +39,7 @@ def mgr(clock, hw):
         retry_initial=0.01,
         retry_max=0.02,
         reset_estimate=RESET_ESTIMATE,
+        reset_runner=inline_runner,
     )
 
 
@@ -403,3 +405,138 @@ def test_constructor_rejects_inconsistent_timings(clock, hw):
         LeaseManager(hw, clock, heartbeat_every=80, heartbeat_timeout=75)
     with pytest.raises(ValueError):
         LeaseManager(hw, clock, heartbeat_timeout=1000, lease_duration=900)
+
+
+# ------------------------------------------------------- reason_for / startup
+def test_reason_for_reports_only_the_last_ended_lease(mgr):
+    first = mgr.acquire("alice")
+    assert mgr.reason_for(first.lease_token) is EndReason.UNKNOWN  # sigue vigente
+    mgr.release(first.lease_token)
+    assert mgr.reason_for(first.lease_token) is EndReason.RELEASED
+    assert mgr.reason_for("otro-token") is EndReason.UNKNOWN
+    assert mgr.reason_for(None) is EndReason.UNKNOWN
+
+
+def test_start_with_initial_reset_runs_safe_state_in_background(mgr, hw):
+    hw.safe_state_gate = threading.Event()
+    mgr.start(initial_reset=True)
+    try:
+        assert hw.safe_state_entered.wait(2)
+        assert mgr.status().state is LeaseState.RESETTING
+        with pytest.raises(ResourceBusy):
+            mgr.acquire("alice")
+        hw.safe_state_gate.set()
+        assert wait_until(lambda: mgr.status().state is LeaseState.FREE)
+        assert hw.safe_state_calls == 1
+    finally:
+        hw.safe_state_gate.set()
+        mgr.stop()
+
+
+def test_start_with_initial_reset_failure_goes_to_fault_then_recovers(mgr, hw):
+    hw.failures_remaining = 1
+    mgr.start(initial_reset=True)
+    try:
+        assert wait_until(lambda: mgr.status().state is LeaseState.FREE)
+        assert hw.safe_state_calls == 2
+    finally:
+        mgr.stop()
+
+
+def test_start_without_initial_reset_does_not_touch_hardware(mgr, hw):
+    mgr.start()
+    try:
+        assert mgr.status().state is LeaseState.FREE
+        assert hw.safe_state_calls == 0
+    finally:
+        mgr.stop()
+
+
+# ------------------------------------------------------------------- eventos
+@pytest.fixture
+def events_mgr(clock, hw):
+    events = []
+    manager = LeaseManager(
+        hw, clock, lease_duration=DURATION, heartbeat_every=HB_EVERY,
+        heartbeat_timeout=HB_TIMEOUT, watchdog_tick=0.005, retry_initial=0.01,
+        retry_max=0.02, on_event=events.append, reset_runner=inline_runner,
+    )
+    return manager, events
+
+
+def test_events_for_a_released_lease(events_mgr):
+    mgr, events = events_mgr
+    grant = mgr.acquire("alice")
+    mgr.release(grant.lease_token)
+    assert [e.kind for e in events] == [EventKind.STARTED, EventKind.ENDED, EventKind.RESET_DONE]
+    started, ended, done = events
+    assert len({e.lease_id for e in events}) == 1
+    assert started.user_id == "alice"
+    assert ended.user_id == "alice" and ended.end_reason is EndReason.RELEASED
+    assert done.safe_state_ok is True and done.safe_state_ms >= 0
+    assert started.at_utc.tzinfo is not None
+
+
+def test_each_lease_gets_its_own_lease_id(events_mgr):
+    mgr, events = events_mgr
+    mgr.release(mgr.acquire("alice").lease_token)
+    mgr.release(mgr.acquire("bob").lease_token)
+    started = [e for e in events if e.kind is EventKind.STARTED]
+    assert len(started) == 2 and started[0].lease_id != started[1].lease_id
+
+
+@pytest.mark.parametrize(
+    "advance,reason",
+    [(DURATION, EndReason.EXPIRED), (HB_TIMEOUT + 1, EndReason.HEARTBEAT_TIMEOUT)],
+)
+def test_events_carry_the_end_reason_for_watchdog_endings(events_mgr, clock, advance, reason):
+    mgr, events = events_mgr
+    mgr.acquire("alice")
+    clock.advance(advance)
+    mgr.tick()
+    ended = [e for e in events if e.kind is EventKind.ENDED]
+    assert len(ended) == 1 and ended[0].end_reason is reason
+
+
+def test_failed_safe_state_emits_reset_done_false_then_true_on_retry(events_mgr, hw):
+    mgr, events = events_mgr
+    mgr._stop_event.set()  # reintento automático desactivado
+    hw.failures_remaining = 1
+    mgr.release(mgr.acquire("alice").lease_token)
+    mgr.retry_safe_state()
+    done = [e for e in events if e.kind is EventKind.RESET_DONE]
+    assert [e.safe_state_ok for e in done] == [False, True]
+    assert len({e.lease_id for e in events}) == 1
+
+
+def test_reacquire_and_rejected_acquire_emit_no_events(events_mgr):
+    mgr, events = events_mgr
+    mgr.acquire("alice")
+    mgr.acquire("alice")
+    with pytest.raises(ResourceBusy):
+        mgr.acquire("bob")
+    assert [e.kind for e in events] == [EventKind.STARTED]
+
+
+def test_startup_reset_emits_no_events(events_mgr, hw):
+    mgr, events = events_mgr
+    mgr.start(initial_reset=True)
+    try:
+        assert wait_until(lambda: mgr.status().state is LeaseState.FREE)
+        assert events == []
+    finally:
+        mgr.stop()
+
+
+def test_a_raising_observer_never_breaks_the_manager(clock, hw):
+    def boom(event):
+        raise RuntimeError("observer roto")
+
+    mgr = LeaseManager(
+        hw, clock, lease_duration=DURATION, heartbeat_every=HB_EVERY,
+        heartbeat_timeout=HB_TIMEOUT, on_event=boom, reset_runner=inline_runner,
+    )
+    grant = mgr.acquire("alice")
+    mgr.release(grant.lease_token)
+    assert mgr.status().state is LeaseState.FREE
+    assert hw.safe_state_calls == 1

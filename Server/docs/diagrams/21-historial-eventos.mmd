@@ -1,0 +1,7 @@
+flowchart LR
+    M["LeaseManager<br/>emite eventos"] -->|"started · ended · reset_done"| R["HistoryRecorder<br/>registro en memoria"]
+    R -->|"copia del registro"| W["Hilo lease-history"]
+    W -->|"upsert por lease_id"| DB[("MySQL<br/>lease_history")]
+
+    classDef ext fill:#ffffff,stroke:#64748b,color:#334155
+    class DB ext

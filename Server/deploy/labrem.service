@@ -1,0 +1,37 @@
+# Unit de systemd para el servidor del laboratorio remoto.
+# Copiar a /etc/systemd/system/labrem.service y AJUSTAR User, Group y las rutas.
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now labrem
+#   systemd-analyze verify /etc/systemd/system/labrem.service
+
+[Unit]
+Description=LabRem - servidor Flask (gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# AJUSTAR: usuario sin privilegios dueño del código y del .env
+User=labrem
+Group=labrem
+# AJUSTAR: carpeta Server/ (decouple lee el .env desde acá)
+WorkingDirectory=/opt/labrem/Server
+# AJUSTAR: gunicorn del virtualenv
+ExecStart=/opt/labrem/venv/bin/gunicorn -c gunicorn.conf.py app:app
+
+# Si el proceso muere (incluido kill -9) se reinicia; el safe_state de arranque deja
+# el hardware en estado conocido.
+Restart=always
+RestartSec=3
+
+# Puerto 80 sin correr como root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+
+# Debe ser MAYOR que graceful_timeout de gunicorn (120 s): deja terminar el safe_state
+# del apagado antes de que systemd mate el proceso.
+KillSignal=SIGTERM
+TimeoutStopSec=150
+
+[Install]
+WantedBy=multi-user.target

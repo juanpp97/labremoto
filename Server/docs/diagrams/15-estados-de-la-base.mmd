@@ -1,0 +1,24 @@
+stateDiagram-v2
+    state "ESPERANDO COMANDO" as ESPERANDO
+    state "Posicionando base" as POSICIONANDO
+    state "Base lista" as LISTA
+    state "Iniciando Exp..." as INICIANDO
+    state "Exp Terminado" as TERMINADO
+    state "Reiniciando Exp" as REINICIANDO
+    state "Exp Reiniciado · rampa en 0°" as REINICIADO
+
+    [*] --> ESPERANDO : encendido o com6
+    ESPERANDO --> POSICIONANDO : com3
+    REINICIADO --> POSICIONANDO : com3
+    LISTA --> POSICIONANDO : com3
+    POSICIONANDO --> LISTA : rampa inclinada
+    LISTA --> INICIANDO : com1
+    INICIANDO --> TERMINADO : 4 barreras disparadas
+    TERMINADO --> REINICIANDO : vuelta automática
+    LISTA --> REINICIANDO : com4
+    REINICIANDO --> REINICIADO : rampa en 0°
+
+    classDef ready fill:#ffffff,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef busy fill:#ffffff,stroke:#b45309,color:#78350f,stroke-width:2px
+    class ESPERANDO,LISTA,REINICIADO ready
+    class POSICIONANDO,INICIANDO,TERMINADO,REINICIANDO busy

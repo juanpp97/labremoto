@@ -1,0 +1,34 @@
+sequenceDiagram
+    autonumber
+    participant P as Sitio PHP
+    participant F as Frontend
+    participant B as Backend
+
+    F->>P: session.php
+    P-->>F: usuario (DNI)
+    F->>B: POST / {"username": DNI}
+    B-->>F: 200 JWT
+    F->>B: POST /resource/acquire (JWT)
+    alt laboratorio libre
+        B-->>F: 200 lease_token · stream_token · heartbeat_every
+    else ocupado o reseteando
+        B-->>F: 423 available_in_seconds
+        Note left of F: reintenta con polling<br/>de /resource/status
+    else hardware en falla
+        B-->>F: 503 resource_fault
+    end
+    F->>B: GET /camera?t=stream_token
+    loop cada heartbeat_every segundos
+        F->>B: POST /resource/heartbeat
+        B-->>F: 200 seconds_remaining
+    end
+    F->>B: POST /inclinar · GET /iniciar · GET /resultados/…
+    B-->>F: 200
+    alt el usuario termina
+        F->>B: POST /resource/release
+        B-->>F: 200 released
+    else cierra la pestaña
+        F->>B: sendBeacon /resource/release {"lease_token": …}
+    else el servidor terminó la sesión
+        B-->>F: 401 lease_invalid con reason
+    end

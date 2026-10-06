@@ -1,0 +1,17 @@
+erDiagram
+    USER {
+        int id PK
+        string username UK "DNI"
+        string password
+        string role "user o admin"
+    }
+    LEASE_HISTORY {
+        string lease_id PK "UUID v4"
+        string username "DNI del titular"
+        datetime acquired_at "UTC, indexado"
+        datetime ended_at "UTC, nulo si abierta"
+        string end_reason "motivo de fin"
+        boolean safe_state_ok "resultado del último reset"
+        int safe_state_ms "duración del último reset"
+    }
+    USER ||--o{ LEASE_HISTORY : "username"

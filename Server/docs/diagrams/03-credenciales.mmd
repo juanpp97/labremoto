@@ -1,0 +1,11 @@
+flowchart LR
+    L["POST /<br/>login"] --> J["JWT<br/>identidad · 1 h"]
+    J --> ADM["/admin/resource/*"]
+    J --> A["POST /resource/acquire"]
+    A --> LT["lease_token<br/>X-Lease-Token"]
+    A --> ST["stream_token<br/>?t="]
+    LT --> H["Comandos y gráficos<br/>heartbeat · release"]
+    ST --> C["/camera"]
+
+    classDef key fill:#ffffff,stroke:#1d4ed8,color:#1e3a8a,stroke-width:2px
+    class J,LT,ST key

@@ -2,12 +2,21 @@ import logging
 import math
 import secrets
 import threading
+import uuid
 from datetime import datetime, timezone
 from typing import Callable, Optional, Protocol
 
 from .clock import Clock
 from .errors import LeaseInvalid, ResourceBusy, ResourceFault
-from .models import EndReason, LeaseContext, LeaseGrant, LeaseState, StatusSnapshot
+from .models import (
+    EndReason,
+    EventKind,
+    LeaseContext,
+    LeaseEvent,
+    LeaseGrant,
+    LeaseState,
+    StatusSnapshot,
+)
 
 logger = logging.getLogger("lease")
 
@@ -50,6 +59,8 @@ class LeaseManager:
         retry_max: float = 30,
         reset_estimate: int = 10,
         wall_clock: Callable[[], datetime] = _utc_now,
+        on_event: Optional[Callable[[LeaseEvent], None]] = None,
+        reset_runner: Optional[Callable[[Callable[[], None]], None]] = None,
     ):
         if not 0 < heartbeat_every < heartbeat_timeout < lease_duration:
             raise ValueError("se requiere 0 < heartbeat_every < heartbeat_timeout < lease_duration")
@@ -63,12 +74,20 @@ class LeaseManager:
         self._retry_max = retry_max
         self._reset_estimate = reset_estimate
         self._wall_clock = wall_clock
+        # Observer de auditoría: se invoca con el lock tomado (orden garantizado),
+        # por eso NO debe bloquear ni lanzar (si lanza, se loguea y se ignora).
+        self._on_event = on_event
+        # Cómo se ejecuta el safe_state tras terminar un lease. Por defecto en un hilo
+        # propio (los requests no esperan al hardware); los tests inyectan uno en línea.
+        self._reset_runner = reset_runner
 
         self._lock = threading.Lock()
         self._state = LeaseState.FREE
         self._token: Optional[str] = None
         self._stream_token: Optional[str] = None
         self._user_id: Optional[str] = None
+        self._lease_id: Optional[str] = None
+        self._resetting_lease_id: Optional[str] = None
         self._epoch = 0
         self._expires_at = 0.0
         self._last_heartbeat = 0.0
@@ -80,6 +99,9 @@ class LeaseManager:
         self._stop_event = threading.Event()
         self._watchdog_thread: Optional[threading.Thread] = None
         self._retry_thread: Optional[threading.Thread] = None
+        self._startup_thread: Optional[threading.Thread] = None
+        self._reset_thread: Optional[threading.Thread] = None
+        self._stopped = False
 
     # ------------------------------------------------------------------ props
     @property
@@ -101,7 +123,7 @@ class LeaseManager:
             if reason is None:
                 return self._acquire_locked(user_id)
             self._begin_reset_locked(reason)
-        self._finish_reset()
+        self._schedule_reset()
         with self._lock:
             return self._acquire_locked(user_id)
 
@@ -145,24 +167,23 @@ class LeaseManager:
             else:
                 self._begin_reset_locked(reason)
                 expired = reason
-        self._finish_reset()
+        self._schedule_reset()
         if expired is not None:
             raise LeaseInvalid(expired)
 
     def force_release(self, reason: EndReason = EndReason.FORCED) -> bool:
-        """Termina el lease activo, o reintenta safe_state si está en FAULT."""
+        """Termina el lease activo, o reintenta safe_state si está en FAULT.
+
+        Retorna sin esperar al hardware: el reset corre en segundo plano.
+        """
         with self._lock:
             if self._state is LeaseState.LOCKED:
                 self._begin_reset_locked(reason)
-                retry = False
             elif self._state is LeaseState.FAULT:
-                retry = True
+                self._set_state_locked(LeaseState.RESETTING, "force_retry")
             else:
                 return False
-        if retry:
-            self.retry_safe_state()
-        else:
-            self._finish_reset()
+        self._schedule_reset()
         return True
 
     def status(self) -> StatusSnapshot:
@@ -184,7 +205,7 @@ class LeaseManager:
             if reason is None:
                 return
             self._begin_reset_locked(reason)
-        self._finish_reset()
+        self._schedule_reset()
 
     def retry_safe_state(self) -> LeaseState:
         """Reintenta safe_state si el recurso está en FAULT."""
@@ -196,19 +217,39 @@ class LeaseManager:
         with self._lock:
             return self._state
 
-    def start(self) -> None:
+    def reason_for(self, token: Optional[str]) -> EndReason:
+        """Motivo de fin si `token` es el del último lease terminado; si no, UNKNOWN."""
+        with self._lock:
+            return self._reason_for_locked(token)
+
+    def start(self, initial_reset: bool = False) -> None:
+        """Arranca el watchdog. Con initial_reset, el recurso nace en RESETTING y un
+        hilo ejecuta safe_state (RNF3) sin bloquear el arranque del servidor."""
         if self._watchdog_thread is not None:
             return
         self._stop_event.clear()
+        self._stopped = False
+        if initial_reset:
+            with self._lock:
+                self._set_state_locked(LeaseState.RESETTING, "startup")
+            self._startup_thread = threading.Thread(
+                target=self._finish_reset, name="lease-startup-reset", daemon=True
+            )
+            self._startup_thread.start()
         self._watchdog_thread = threading.Thread(
             target=self._watchdog_loop, name="lease-watchdog", daemon=True
         )
         self._watchdog_thread.start()
 
     def stop(self) -> None:
-        """Shutdown: detiene hilos y deja el hardware en estado seguro."""
+        """Shutdown: detiene hilos y deja el hardware en estado seguro. Idempotente."""
+        with self._lock:
+            if self._stopped:
+                return
+            self._stopped = True
         self._stop_event.set()
-        for thread in (self._watchdog_thread, self._retry_thread):
+        threads = (self._startup_thread, self._reset_thread, self._watchdog_thread, self._retry_thread)
+        for thread in threads:
             if thread is not None and thread is not threading.current_thread():
                 thread.join(timeout=30)
         self._watchdog_thread = None
@@ -219,7 +260,7 @@ class LeaseManager:
             else:
                 locked = False
         if locked:
-            self._finish_reset()
+            self._finish_reset()  # en el apagado sí se espera al hardware
             return
         try:
             self._hardware.safe_state()
@@ -245,10 +286,25 @@ class LeaseManager:
 
     def _set_state_locked(self, new_state: LeaseState, reason: str) -> None:
         logger.info(
-            "lease transition from_state=%s to_state=%s reason=%s user_id=%s epoch=%s",
-            self._state.value, new_state.value, reason, self._user_id, self._epoch,
+            "lease transition %s -> %s (%s)", self._state.value, new_state.value, reason,
+            extra={
+                "event": "lease_transition",
+                "from_state": self._state.value,
+                "to_state": new_state.value,
+                "reason": reason,
+                "user_id": self._user_id,
+                "epoch": self._epoch,
+            },
         )
         self._state = new_state
+
+    def _emit_locked(self, event: LeaseEvent) -> None:
+        if self._on_event is None:
+            return
+        try:
+            self._on_event(event)
+        except Exception:
+            logger.exception("el observer de eventos de lease falló; se ignora")
 
     def _grant_locked(self) -> LeaseGrant:
         return LeaseGrant(
@@ -271,7 +327,11 @@ class LeaseManager:
             self._expires_at = now + self._lease_duration
             self._last_heartbeat = now
             self._acquired_at_utc = self._wall_clock()
+            self._lease_id = str(uuid.uuid4())
             self._set_state_locked(LeaseState.LOCKED, "acquire")
+            self._emit_locked(
+                LeaseEvent(EventKind.STARTED, self._lease_id, self._acquired_at_utc, user_id=user_id)
+            )
             return self._grant_locked()
         if state is LeaseState.LOCKED:
             if user_id == self._user_id:
@@ -302,7 +362,7 @@ class LeaseManager:
                 ctx = self._authenticate_locked(token, touch)
                 return ctx, self._remaining_locked()
             self._begin_reset_locked(reason)
-        self._finish_reset()
+        self._schedule_reset()
         # Lo que venció es el lease vigente; su token ya no sirve.
         with self._lock:
             raise LeaseInvalid(self._reason_for_locked(token))
@@ -310,24 +370,56 @@ class LeaseManager:
     def _begin_reset_locked(self, reason: EndReason) -> None:
         self._last_ended_token = self._token
         self._last_end_reason = reason
+        self._resetting_lease_id = self._lease_id
+        if self._lease_id is not None:
+            self._emit_locked(
+                LeaseEvent(
+                    EventKind.ENDED, self._lease_id, self._wall_clock(),
+                    user_id=self._user_id, end_reason=reason,
+                )
+            )
         self._set_state_locked(LeaseState.RESETTING, reason.value)
         # El token se invalida acá, antes de tocar el hardware.
         self._token = None
         self._stream_token = None
         self._user_id = None
+        self._lease_id = None
+
+    def _schedule_reset(self) -> None:
+        """Lanza safe_state (RESETTING -> FREE/FAULT) sin bloquear a quien llama."""
+        if self._reset_runner is not None:
+            self._reset_runner(self._finish_reset)
+            return
+        thread = threading.Thread(target=self._finish_reset, name="lease-reset", daemon=True)
+        self._reset_thread = thread
+        thread.start()
 
     def _finish_reset(self) -> None:
         """Ejecuta safe_state fuera del lock; RESETTING -> FREE o FAULT."""
+        started = self._now()
         try:
             self._hardware.safe_state()
         except Exception:
             logger.exception("safe_state falló; el recurso pasa a FAULT")
             with self._lock:
+                self._emit_reset_done_locked(False, started)
                 self._set_state_locked(LeaseState.FAULT, "safe_state_failed")
                 self._ensure_retry_thread_locked()
             return
         with self._lock:
+            self._emit_reset_done_locked(True, started)
+            self._resetting_lease_id = None
             self._set_state_locked(LeaseState.FREE, "safe_state_ok")
+
+    def _emit_reset_done_locked(self, ok: bool, started: float) -> None:
+        if self._resetting_lease_id is None:  # reset de arranque: no hay lease asociado
+            return
+        self._emit_locked(
+            LeaseEvent(
+                EventKind.RESET_DONE, self._resetting_lease_id, self._wall_clock(),
+                safe_state_ok=ok, safe_state_ms=int((self._now() - started) * 1000),
+            )
+        )
 
     def _ensure_retry_thread_locked(self) -> None:
         if self._retry_thread is not None or self._stop_event.is_set():

@@ -1,0 +1,27 @@
+flowchart TB
+    APP["app.py<br/>configuración y cableado"]
+    API["lease/flask_api.py<br/>endpoints del lease"]
+    RTS["hardware/routes.py<br/>endpoints de hardware"]
+    MGR["LeaseManager<br/>lease/manager.py"]
+    REC["HistoryRecorder<br/>lease/history.py"]
+    CTL["HardwareController<br/>hardware/controller.py"]
+    SQL["SqlHistoryStore<br/>lease/sql_history.py"]
+    DRV["LabRemDriver<br/>hardware/labrem_driver.py"]
+    DB[("MySQL")]
+    LR["LabRem.py<br/>cliente MQTT"]
+
+    APP --> API
+    APP --> RTS
+    API --> MGR
+    MGR -->|"eventos"| REC
+    MGR -->|"safe_state · is_current"| CTL
+    RTS --> CTL
+    REC --> SQL
+    SQL --> DB
+    CTL --> DRV
+    DRV --> LR
+
+    classDef core fill:#ffffff,stroke:#1d4ed8,color:#1e3a8a,stroke-width:2px
+    classDef ext fill:#ffffff,stroke:#64748b,color:#334155
+    class MGR,CTL core
+    class DB,LR ext

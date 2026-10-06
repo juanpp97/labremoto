@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant C as Cliente
+    participant M as LeaseManager
+    participant R as Hilo lease-reset
+    participant H as HardwareController
+
+    C->>M: POST /resource/release
+    Note over M: bajo su lock: valida el token,<br/>registra el fin, LOCKED → RESETTING,<br/>revoca los tokens
+    M->>R: agenda safe_state
+    M-->>C: 200 released
+    Note over C: desde acá el token viejo<br/>responde 401 · released
+    R->>H: safe_state()
+    Note over H: espera el io_lock si hay<br/>un comando en vuelo
+    H-->>R: OK
+    R->>M: RESETTING → FREE
+    C->>M: GET /resource/status (polling)
+    M-->>C: FREE

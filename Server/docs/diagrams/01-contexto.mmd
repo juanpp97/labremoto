@@ -1,0 +1,32 @@
+flowchart LR
+    U(["Usuario<br/>navegador"])
+
+    subgraph FAC["Servidor de la facultad"]
+        AP["Apache<br/>HTTPS · proxy /raspi"]
+        PHP["Sitio PHP<br/>login y sesiones"]
+    end
+
+    APP["Backend Flask · gunicorn<br/>Raspberry Pi"]
+    CAM["Webcam<br/>Raspberry Pi"]
+    BRK["Broker MQTT<br/>Raspberry Pi"]
+
+    subgraph PRO["Prototipo físico"]
+        BASE["Micro de la base<br/>rampa · barreras"]
+        MOV["Micro del móvil<br/>acelerómetro"]
+    end
+
+    DB[("MySQL<br/>usuarios · historial")]
+
+    U -->|"API"| AP
+    U -.->|"sesión"| PHP
+    AP -->|"HTTP"| APP
+    APP -->|"SQL"| DB
+    APP --> CAM
+    APP <-->|"MQTT"| BRK
+    BRK <--> BASE
+    BRK <--> MOV
+
+    classDef core fill:#ffffff,stroke:#1d4ed8,color:#1e3a8a,stroke-width:2px
+    classDef ext fill:#ffffff,stroke:#64748b,color:#334155
+    class APP core
+    class U,AP,PHP,DB,CAM,BRK,BASE,MOV ext

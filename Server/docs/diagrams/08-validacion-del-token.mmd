@@ -1,0 +1,15 @@
+flowchart TB
+    IN(["validate(token)"]) --> D1{"¿Venció el<br/>límite duro?"}
+    D1 -->|"sí"| E1(["Revoca tokens · agenda safe_state<br/>401 expired"])
+    D1 -->|"no"| D2{"¿Más de 75 s<br/>sin señales?"}
+    D2 -->|"sí"| E2(["Revoca tokens · agenda safe_state<br/>401 heartbeat_timeout"])
+    D2 -->|"no"| D3{"¿Token vigente?"}
+    D3 -->|"sí"| OK(["Registra señal de vida<br/>devuelve contexto y época"])
+    D3 -->|"no"| D4{"¿Token del último<br/>lease terminado?"}
+    D4 -->|"sí"| E3(["401 con el motivo<br/>de ese fin"])
+    D4 -->|"no"| E4(["401 unknown"])
+
+    classDef ok fill:#ffffff,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef bad fill:#ffffff,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px
+    class OK ok
+    class E1,E2,E3,E4 bad

@@ -11,3 +11,5 @@ numpy
 imageio
 python-decouple
 paho-mqtt
+pymysql
+gunicorn; sys_platform != "win32"

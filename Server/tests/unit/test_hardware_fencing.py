@@ -9,6 +9,7 @@ from lease.clock import FakeClock
 from lease.errors import LeaseRevoked
 from lease.manager import LeaseManager
 from lease.models import LeaseContext, LeaseState
+from tests.fakes import inline_runner
 
 DURATION = 900
 HB_TIMEOUT = 75
@@ -20,6 +21,7 @@ def make(safe_state_lock_timeout=60.0):
     mgr = LeaseManager(
         hw, clock, lease_duration=DURATION, heartbeat_every=20,
         heartbeat_timeout=HB_TIMEOUT, retry_initial=0.01, retry_max=0.02,
+        reset_runner=inline_runner,
     )
     hw.attach_lease_checker(mgr.is_current)
     return clock, hw, mgr

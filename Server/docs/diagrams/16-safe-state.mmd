@@ -1,0 +1,16 @@
+flowchart TB
+    S(["safe_state()"]) --> A["Intento 1<br/>base lista · com4"]
+    A --> D1{"¿OK?"}
+    D1 -->|"sí"| OK1(["FREE"])
+    D1 -->|"no"| B["com6<br/>reset de micros"]
+    B --> D2{"¿Volvieron?"}
+    D2 -->|"no"| X1(["FAULT"])
+    D2 -->|"sí"| C["Intento 2<br/>base lista · com4"]
+    C --> D3{"¿OK?"}
+    D3 -->|"sí"| OK2(["FREE"])
+    D3 -->|"no"| X2(["FAULT"])
+
+    classDef ok fill:#ffffff,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef bad fill:#ffffff,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px
+    class OK1,OK2 ok
+    class X1,X2 bad

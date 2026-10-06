@@ -1,0 +1,17 @@
+flowchart LR
+    AP["Apache de la facultad<br/>proxy /raspi"] -->|"HTTP :80"| WK
+
+    subgraph PI["Raspberry Pi"]
+        direction TB
+        SD["systemd<br/>labrem.service"] --> GU["gunicorn<br/>arbiter"]
+        GU --> WK["Worker único<br/>gthread · 6 hilos · app:app"]
+    end
+
+    WK --> JR["journald<br/>logs JSON"]
+    WK --> BRK["Broker MQTT"]
+    WK --> DB[("MySQL")]
+
+    classDef core fill:#ffffff,stroke:#1d4ed8,color:#1e3a8a,stroke-width:2px
+    classDef ext fill:#ffffff,stroke:#64748b,color:#334155
+    class WK core
+    class AP,JR,BRK,DB ext

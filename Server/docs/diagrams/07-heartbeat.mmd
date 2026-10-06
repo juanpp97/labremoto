@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant C as Cliente
+    participant M as LeaseManager
+    participant W as Watchdog
+
+    C->>M: acquire (t = 0)
+    Note over M: vence en t = 900 · último heartbeat t = 0
+    loop cada 20 s
+        C->>M: heartbeat
+        Note over M: actualiza el último heartbeat<br/>el vencimiento NO cambia
+    end
+    Note over C: t = 300 · el usuario cierra la pestaña
+    W->>M: ticks entre t = 305 y t = 375
+    Note over M: menos de 75 s sin señales: sigue vivo
+    W->>M: tick en t ≈ 380
+    Note over M: más de 75 s sin señales<br/>LOCKED → RESETTING (heartbeat_timeout)

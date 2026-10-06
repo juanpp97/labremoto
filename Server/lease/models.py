@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -40,3 +41,22 @@ class StatusSnapshot:
     state: LeaseState
     available: bool
     available_in_seconds: Optional[int]
+
+
+class EventKind(str, Enum):
+    STARTED = "started"
+    ENDED = "ended"
+    RESET_DONE = "reset_done"
+
+
+@dataclass(frozen=True)
+class LeaseEvent:
+    """Evento del ciclo de vida de un lease, para auditoría. at_utc es reloj de pared."""
+
+    kind: EventKind
+    lease_id: str
+    at_utc: datetime
+    user_id: Optional[str] = None
+    end_reason: Optional[EndReason] = None
+    safe_state_ok: Optional[bool] = None
+    safe_state_ms: Optional[int] = None

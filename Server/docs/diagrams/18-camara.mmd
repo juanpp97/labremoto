@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant I as img del frontend
+    participant B as GET /camera?t=…
+    participant M as LeaseManager
+    participant V as Webcam
+
+    I->>B: abre el stream
+    B->>M: validate_stream(t)
+    alt ticket inválido o lease terminado
+        M-->>B: LeaseInvalid
+        B-->>I: 401
+    else ticket válido
+        M-->>B: época
+        loop cada frame (~30 fps)
+            B->>M: is_current(época)
+            alt sesión vigente
+                B-->>I: frame WEBP 400×350
+            else sesión terminada
+                B->>V: close()
+                B-->>I: fin del stream
+            end
+        end
+    end

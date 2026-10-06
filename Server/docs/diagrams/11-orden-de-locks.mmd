@@ -1,0 +1,3 @@
+flowchart LR
+    IO["io_lock<br/>HardwareController"] -->|"puede tomar"| ML["_lock<br/>LeaseManager"]
+    ML -->|"el observador toma"| HL["_lock<br/>HistoryRecorder"]

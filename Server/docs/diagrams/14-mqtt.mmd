@@ -1,0 +1,7 @@
+flowchart LR
+    LR["LabRem.py<br/>Raspberry Pi"] <-->|"comandos · estado · mediciones"| BRK["Broker MQTT<br/>10.42.0.1:1883"]
+    BRK <-->|"baseCom · baseInfo · baseTiempo"| BASE["Micro de la base"]
+    BRK <-->|"baseCom · movilDatos"| MOV["Micro del móvil"]
+
+    classDef ext fill:#ffffff,stroke:#64748b,color:#334155
+    class BRK,BASE,MOV ext

@@ -1,0 +1,49 @@
+{
+  "theme": "base",
+  "fontFamily": "arial, sans-serif",
+  "themeVariables": {
+    "background": "#ffffff",
+    "fontFamily": "arial, sans-serif",
+    "fontSize": "14px",
+    "primaryColor": "#ffffff",
+    "primaryTextColor": "#0f172a",
+    "primaryBorderColor": "#475569",
+    "secondaryColor": "#ffffff",
+    "tertiaryColor": "#ffffff",
+    "mainBkg": "#ffffff",
+    "nodeBorder": "#475569",
+    "lineColor": "#475569",
+    "textColor": "#0f172a",
+    "clusterBkg": "#ffffff",
+    "clusterBorder": "#cbd5e1",
+    "titleColor": "#334155",
+    "edgeLabelBackground": "#ffffff",
+    "actorBkg": "#ffffff",
+    "actorBorder": "#475569",
+    "actorTextColor": "#0f172a",
+    "actorLineColor": "#cbd5e1",
+    "signalColor": "#334155",
+    "signalTextColor": "#0f172a",
+    "labelBoxBkgColor": "#ffffff",
+    "labelBoxBorderColor": "#94a3b8",
+    "labelTextColor": "#0f172a",
+    "loopTextColor": "#334155",
+    "noteBkgColor": "#ffffff",
+    "noteBorderColor": "#94a3b8",
+    "noteTextColor": "#334155",
+    "activationBkgColor": "#f1f5f9",
+    "activationBorderColor": "#475569",
+    "sequenceNumberColor": "#ffffff",
+    "attributeBackgroundColorOdd": "#ffffff",
+    "attributeBackgroundColorEven": "#f8fafc"
+  },
+  "flowchart": {
+    "diagramPadding": 24
+  },
+  "state": {
+    "diagramPadding": 24
+  },
+  "er": {
+    "diagramPadding": 24
+  }
+}

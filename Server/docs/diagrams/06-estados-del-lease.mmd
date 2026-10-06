@@ -1,0 +1,16 @@
+stateDiagram-v2
+    [*] --> RESETTING : arranque del servidor
+    RESETTING --> FREE : safe_state OK
+    RESETTING --> FAULT : safe_state falla
+    FAULT --> RESETTING : reintento automático<br/>o force-release
+    FREE --> LOCKED : acquire
+    LOCKED --> RESETTING : release · vencimiento<br/>heartbeat perdido · force · apagado
+
+    classDef free fill:#ffffff,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef busy fill:#ffffff,stroke:#1d4ed8,color:#1e3a8a,stroke-width:2px
+    classDef reset fill:#ffffff,stroke:#b45309,color:#78350f,stroke-width:2px
+    classDef fault fill:#ffffff,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px
+    class FREE free
+    class LOCKED busy
+    class RESETTING reset
+    class FAULT fault

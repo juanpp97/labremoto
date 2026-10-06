@@ -1,47 +1,8 @@
 import pytest
 
 from hardware.errors import HardwareError
-from hardware.labrem_driver import STATE_BOOTED, STATE_HOMED, LabRemDriver
-
-READY = ("Base lista", STATE_HOMED, STATE_BOOTED)
-
-
-class FakeLabRem:
-    """Simula el módulo LabRem: estado de la base + comandos MQTT."""
-
-    topic_comandos_cin = "/test/com"
-
-    class TimeOutError(Exception):
-        pass
-
-    def __init__(self, state="Base lista"):
-        self.estado_base = state
-        self.sent = []
-        self.hard_resets = 0
-        # com4 -> lista de resultados: "ok" | "timeout"
-        self.com4_script = []
-        self.busy_polls = 0  # cuántas consultas devuelven "no listo" antes de estarlo
-        self.boot_after_reset = True
-
-    def consultarEstado(self, target=0):
-        if self.busy_polls > 0:
-            self.busy_polls -= 1
-            return False
-        if target == 0:
-            return self.estado_base in READY
-        return self.estado_base == target
-
-    def enviarComandoBM(self, topic, message, timeout, target=0):
-        self.sent.append((message, target))
-        outcome = self.com4_script.pop(0) if self.com4_script else "ok"
-        if outcome == "timeout":
-            raise self.TimeOutError("Tiempo de espera agotado")
-        self.estado_base = target if target else self.estado_base
-        return 1
-
-    def hardReset(self):
-        self.hard_resets += 1
-        self.estado_base = STATE_BOOTED if self.boot_after_reset else "Reiniciando"
+from hardware.labrem_driver import STATE_HOMED, LabRemDriver
+from tests.fakes import FakeLabRem
 
 
 class Time:

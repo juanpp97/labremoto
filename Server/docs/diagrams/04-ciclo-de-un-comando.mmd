@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    participant B as Navegador
+    participant API as Flask · @lease_required
+    participant M as LeaseManager
+    participant C as HardwareController
+    participant L as LabRem
+    participant U as Micro de la base
+
+    B->>API: POST /inclinar (X-Lease-Token, angulo=10)
+    API->>M: validate(token)
+    Note right of M: ¿venció? ¿token correcto?<br/>registra señal de vida
+    M-->>API: LeaseContext(token, época)
+    API->>C: run(contexto, operación)
+    activate C
+    Note right of C: toma io_lock y<br/>re-verifica la época
+    C->>M: is_current(época)
+    M-->>C: true
+    C->>L: consultarEstado() + enviarAnguloCin(10)
+    L->>U: com3 ang 10.0 (MQTT)
+    U-->>L: Posicionando base → Base lista
+    L-->>C: 1
+    deactivate C
+    C-->>API: resultado
+    API-->>B: 200 Base Inclinada

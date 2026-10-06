@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant M as LeaseManager
+    participant R as HistoryRecorder
+    participant W as Hilo lease-history
+    participant DB as MySQL
+
+    M->>R: started · ended · reset_done (L1)
+    W->>DB: upsert(L1)
+    DB--xW: error de conexión
+    Note over W: reintenta a los 5 s, 10 s, 20 s…
+    Note over M,DB: el laboratorio sigue funcionando normalmente
+    W->>DB: upsert(L1)
+    DB-->>W: OK
+    W->>R: L1 escrito y completo, se libera de memoria

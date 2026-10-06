@@ -1,0 +1,14 @@
+flowchart TB
+    F["FAULT<br/>acquire → 503 · /healthz → 503"] --> W["Espera con backoff<br/>2 · 4 · 8 · 16 · 30 s"]
+    W --> R["RESETTING<br/>safe_state()"]
+    ADM["Administrador<br/>force-release"] --> R
+    R --> D{"¿Resultado?"}
+    D -->|"OK"| OK(["FREE"])
+    D -->|"falla"| F
+
+    classDef ok fill:#ffffff,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef bad fill:#ffffff,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px
+    classDef reset fill:#ffffff,stroke:#b45309,color:#78350f,stroke-width:2px
+    class OK ok
+    class F bad
+    class R reset

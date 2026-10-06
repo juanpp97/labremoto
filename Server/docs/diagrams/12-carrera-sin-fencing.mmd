@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant R as Request /iniciar
+    participant M as LeaseManager
+    participant W as Watchdog
+    participant H as Hardware
+
+    R->>M: validate(token)
+    M-->>R: OK (todavía vigente)
+    Note over R: el hilo se demora
+    W->>M: el lease venció
+    M->>H: safe_state(): rampa a 0°
+    R->>H: iniciar experimento
+    Note over H: ✗ comando de una sesión terminada<br/>sobre hardware ya liberado

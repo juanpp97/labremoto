@@ -258,6 +258,7 @@ def GraficarDatos_accel():
     axis.set_ylabel("Aceleracion (m/s^2)")
     
     prom=np.average(acel_m[0:ind_max])
+    seno=0
     if Ang !=0:
         seno=np.sin(Ang*np.pi/180)*9.81
     
